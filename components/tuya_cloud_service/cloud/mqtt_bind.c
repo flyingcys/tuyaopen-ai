@@ -49,7 +49,7 @@ static mqtt_bind_t *s_mqbind = NULL;
 void mqtt_bind_free(void)
 {
     if (s_mqbind) {
-        tal_free(s_mqbind);
+        tal_free((void *)s_mqbind);
         s_mqbind = NULL;
     }
 }
@@ -266,7 +266,7 @@ int mqtt_bind_token_get(tuya_iot_config_t *config)
     rt = tal_thread_create_and_start(&s_mqbind->thread, NULL, NULL, mqtt_bind_token_get_thread, s_mqbind, &thread_cfg);
     if (OPRT_OK != rt) {
         PR_ERR("tuya cli create thread failed %d", rt);
-        tal_free(s_mqbind);
+        tal_free((void *)s_mqbind);
         s_mqbind = NULL;
     }
 

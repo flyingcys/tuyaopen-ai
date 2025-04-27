@@ -77,7 +77,7 @@ ap_netcfg_t *ap_netcfg_get(void)
 void ap_netcfg_free(void)
 {
     if (s_ap_netcfg) {
-        tal_free(s_ap_netcfg);
+        tal_free((void *)s_ap_netcfg);
         s_ap_netcfg = NULL;
     }
 }
@@ -104,7 +104,7 @@ static void ap_app_key_make(uint8_t *app_key)
     app_key[15] = 'O';
 
     tal_md5_ret(app_key, APP_KEY_LEN, app_key_encode);
-    memcpy(app_key, app_key_encode, APP_KEY_LEN);
+    memcpy((void *)app_key, app_key_encode, APP_KEY_LEN);
 }
 
 static int ap_dev_config_make(ap_netcfg_t *ap, char **buf)
@@ -158,12 +158,12 @@ static void ap_broadcast_timeout(TIMER_ID timerID, void *pTimerArg)
     lpv35_plaintext_data_t *plaintext_data = tal_malloc(plaintext_len);
     if (plaintext_data == NULL) {
         PR_ERR("plaintext_data fail");
-        tal_free(json_buf);
+        tal_free((void *)json_buf);
         return;
     }
     plaintext_data->ret_code = 0;
-    memcpy(plaintext_data->data, json_buf, strlen(json_buf));
-    tal_free(json_buf);
+    memcpy((void *)plaintext_data->data, json_buf, strlen(json_buf));
+    tal_free((void *)json_buf);
     // lpv3.5 test arch
     lpv35_frame_object_t frame = {
         .sequence = 0,
@@ -175,14 +175,14 @@ static void ap_broadcast_timeout(TIMER_ID timerID, void *pTimerArg)
     uint8_t *send_buf = (uint8_t *)tal_malloc(lpv35_frame_buffer_size_get(&frame));
     if (send_buf == NULL) {
         PR_ERR("send_buf malloc fail");
-        tal_free(plaintext_data);
+        tal_free((void *)plaintext_data);
         return;
     }
     op_ret = lpv35_frame_serialize(ap->app_key, APP_KEY_LEN, &frame, send_buf, (int *)&olen);
-    tal_free(plaintext_data);
+    tal_free((void *)plaintext_data);
     if (op_ret != OPRT_OK) {
         PR_ERR("lpv35_frame_serialize fail:%d", op_ret);
-        tal_free(send_buf);
+        tal_free((void *)send_buf);
         return;
     }
 
@@ -191,7 +191,7 @@ static void ap_broadcast_timeout(TIMER_ID timerID, void *pTimerArg)
         PR_ERR("sendto broadcast Failed,len:%d ret:%d,errno:%d", olen, op_ret, tal_net_get_errno());
     }
 
-    tal_free(send_buf);
+    tal_free((void *)send_buf);
 }
 
 static int ap_cfg_cmd_patse(ap_netcfg_t *ap, char *data)
@@ -245,7 +245,7 @@ static int ap_cfg_cmd_patse(ap_netcfg_t *ap, char *data)
     cJSON *reg = cJSON_GetObjectItem(root, "reg");
     if (reg) {
         char *app_reg = cJSON_PrintUnformatted(reg);
-        tal_free(app_reg);
+        tal_free((void *)app_reg);
         if (OPRT_OK != tuya_register_center_save(RCS_APP, reg)) {
             PR_ERR("save to reg center err");
         }
@@ -333,7 +333,7 @@ static int ap_send(ap_netcfg_t *ap, uint32_t frame_type, uint32_t ret_code, uint
 
     plaintext_data->ret_code = ret_code;
     if (p_data != NULL) {
-        memcpy(plaintext_data->data, p_data, data_len);
+        memcpy((void *)plaintext_data->data, p_data, data_len);
     }
 
     // lpv3.5 test arch
@@ -354,7 +354,7 @@ static int ap_send(ap_netcfg_t *ap, uint32_t frame_type, uint32_t ret_code, uint
     op_ret = lpv35_frame_serialize(ap->app_key, APP_KEY_LEN, &frame, send_buf, (int *)&olen);
     if (op_ret != OPRT_OK) {
         PR_ERR("lpv35_frame_serialize fail:%d", op_ret);
-        tal_free(send_buf);
+        tal_free((void *)send_buf);
         return OPRT_COM_ERROR;
     }
 
@@ -364,7 +364,7 @@ static int ap_send(ap_netcfg_t *ap, uint32_t frame_type, uint32_t ret_code, uint
     }
 
     PR_TRACE("tls write :%d", op_ret);
-    tal_free(send_buf);
+    tal_free((void *)send_buf);
     return OPRT_OK;
 }
 
@@ -440,7 +440,7 @@ static int ap_ext_cmd_parse(ap_netcfg_t *ap, char *data)
             goto __exit;
         }
         sprintf(buffer, "{\"reqType\":\"query_dev_rpt\",\"data\":%s}", data);
-        tal_free(data);
+        tal_free((void *)data);
     } else if (0 == strcmp(reqtype->valuestring, "get_wifi_list")) {
         cJSON *jdata = cJSON_GetObjectItem(root, "data");
         if (NULL == jdata) {
@@ -474,7 +474,7 @@ __exit:
     }
 
     if (buffer) {
-        tal_free(buffer);
+        tal_free((void *)buffer);
     }
 
     return rt;
@@ -718,7 +718,7 @@ static void ap_netcfg_thread(void *args)
                 } else if (frame_object.type == AP_CFG_EXT_CMD) {
                     ap_ext_cmd_parse(ap, (char *)frame_object.data);
                 }
-                tal_free(frame_object.data);
+                tal_free((void *)frame_object.data);
             }
         } break;
 
@@ -887,7 +887,7 @@ int ap_netcfg_init(netcfg_args_t *netcfg_args)
 
     TUYA_CHECK_NULL_RETURN(s_ap_netcfg = tal_malloc(sizeof(ap_netcfg_t)), OPRT_MALLOC_FAILED);
     memset(s_ap_netcfg, 0, sizeof(ap_netcfg_t));
-    memcpy(&s_ap_netcfg->netcfg_args, netcfg_args, sizeof(netcfg_args_t));
+    memcpy((void *)&s_ap_netcfg->netcfg_args, netcfg_args, sizeof(netcfg_args_t));
 
     return netcfg_register(NETCFG_TUYA_WIFI_AP, ap_netcfg_start, ap_netcfg_stop);
 }

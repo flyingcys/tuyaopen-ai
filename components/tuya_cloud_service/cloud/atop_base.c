@@ -59,7 +59,7 @@ static int atop_url_params_sign(const char *key, url_param_t *params, int param_
 
     // make md5 digest bin
     tal_md5_ret((const uint8_t *)buffer, printlen, digest);
-    tal_free(buffer);
+    tal_free((void *)buffer);
 
     // make digest hex
     for (i = 0; i < MD5SUM_LENGTH; i++) {
@@ -137,7 +137,7 @@ static int atop_request_data_encode(const char *key, const uint8_t *input, int i
         printlen += sprintf((char *)output + printlen, "%02X", (uint8_t)(encrypted_buffer[i]));
     }
 
-    tal_free(encrypted_buffer);
+    tal_free((void *)encrypted_buffer);
     *olen = printlen;
     return ret;
 }
@@ -201,14 +201,14 @@ static int atop_response_data_decode(const char *key, const uint8_t *input, size
     rt = mbedtls_base64_decode(b64buffer, b64buffer_len, &b64buffer_olen, (const uint8_t *)value, value_length);
     if (rt != OPRT_OK) {
         PR_ERR("base64 decode error:%d", rt);
-        tal_free(b64buffer);
+        tal_free((void *)b64buffer);
         cJSON_Delete(root);
         return rt;
     }
 
     rt = atop_response_result_decrpyt(key, (const uint8_t *)b64buffer, b64buffer_olen, output, olen);
     cJSON_Delete(root);
-    tal_free(b64buffer);
+    tal_free((void *)b64buffer);
     if (rt != OPRT_OK) {
         PR_ERR("atop_data_decrpyt error: %d", rt);
         return rt;
@@ -227,12 +227,18 @@ static int atop_response_result_parse_cjson(const uint8_t *input, size_t ilen, a
         return OPRT_INVALID_PARM;
     }
 
-    if (input[ilen] != '\0') {
-        PR_ERR("string length error ilen:%d, stlen:%d", ilen, strlen((char *)input));
+    // Create a null-terminated copy of the input for safe JSON parsing
+    char *json_str = tal_malloc(ilen + 1);
+    if (json_str == NULL) {
+        return OPRT_MALLOC_FAILED;
     }
+    memcpy(json_str, input, ilen);
+    json_str[ilen] = '\0';
 
     // json parse
-    cJSON *root = cJSON_Parse((const char *)input);
+    cJSON *root = cJSON_Parse(json_str);
+    tal_free(json_str);  // Free the temporary string
+    
     if (NULL == root) {
         PR_ERR("Json parse error");
         return OPRT_CJSON_PARSE_ERR;
@@ -357,7 +363,7 @@ int atop_base_request(const atop_base_request_t *request, atop_base_response_t *
     rt = atop_url_params_encode((char *)request->key, params, idx, path_buffer + path_buffer_len, &encode_len);
     if (rt != OPRT_OK) {
         PR_ERR("url param encode error:%d", rt);
-        tal_free(path_buffer);
+        tal_free((void *)path_buffer);
         return rt;
     }
     path_buffer_len += encode_len;
@@ -369,7 +375,7 @@ int atop_base_request(const atop_base_request_t *request, atop_base_response_t *
         tal_malloc(POST_DATA_PREFIX + (request->datalen + AES_GCM128_NONCE_LEN + AES_GCM128_TAG_LEN) * 2 + 1);
     if (NULL == body_buffer) {
         PR_ERR("body_buffer malloc fail");
-        tal_free(path_buffer);
+        tal_free((void *)path_buffer);
         return OPRT_MALLOC_FAILED;
     }
 
@@ -378,8 +384,8 @@ int atop_base_request(const atop_base_request_t *request, atop_base_response_t *
     rt = atop_request_data_encode((char *)request->key, request->data, request->datalen, body_buffer, &body_length);
     if (rt != OPRT_OK) {
         PR_ERR("atop_post_data_encrypt error:%d", rt);
-        tal_free(path_buffer);
-        tal_free(body_buffer);
+        tal_free((void *)path_buffer);
+        tal_free((void *)body_buffer);
         return rt;
     }
     PR_DEBUG("out post data len:%d, data:%s", body_length, body_buffer);
@@ -410,8 +416,8 @@ int atop_base_request(const atop_base_request_t *request, atop_base_response_t *
                                       &http_response);
 
     /* Release http buffer */
-    tal_free(path_buffer);
-    tal_free(body_buffer);
+    tal_free((void *)path_buffer);
+    tal_free((void *)body_buffer);
 
     if (HTTP_CLIENT_SUCCESS != http_status) {
         PR_ERR("http_request_send error:%d", http_status);
@@ -438,7 +444,7 @@ int atop_base_request(const atop_base_request_t *request, atop_base_response_t *
     }
 
     http_client_free(&http_response);
-    tal_free(result_buffer);
+    tal_free((void *)result_buffer);
 
     return rt;
 }

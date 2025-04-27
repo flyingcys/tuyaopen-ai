@@ -104,6 +104,6 @@ $ ninja -C build
 
 The platforms on which this has been successfully run include:
 
-- [x] Canaan SG200X RV64:
+- [x] Sophgo SG200X RV64:
     - [Milk-V Duo/Duo256/Duos](https://milkv.io/en/docs/duo/overview)
     - [LicheeRV Nano](https://wiki.sipeed.com/hardware/en/lichee/RV_Nano/1_intro.html)

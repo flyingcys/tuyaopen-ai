@@ -34,7 +34,7 @@ typedef enum {
  * @param[in]   ringbuff: ringbuff handle
  * @return  TRUE/ FALSE
  */
-OPERATE_RET tuya_ring_buff_create(uint16_t len, RINGBUFF_TYPE_E type, TUYA_RINGBUFF_T *ringbuff);
+OPERATE_RET tuya_ring_buff_create(uint32_t len, RINGBUFF_TYPE_E type, TUYA_RINGBUFF_T *ringbuff);
 
 /**
  * @brief ringbuff free
@@ -59,7 +59,7 @@ OPERATE_RET tuya_ring_buff_reset(TUYA_RINGBUFF_T ringbuff);
  * @param[in]   ringbuff: ringbuff handle
  * @return  size of ringbuff not used
  */
-uint16_t tuya_ring_buff_free_size_get(TUYA_RINGBUFF_T ringbuff);
+uint32_t tuya_ring_buff_free_size_get(TUYA_RINGBUFF_T ringbuff);
 
 /**
  * @brief ringbuff used size get
@@ -67,7 +67,7 @@ uint16_t tuya_ring_buff_free_size_get(TUYA_RINGBUFF_T ringbuff);
  * @param[in]   ringbuff: ringbuff handle
  * @return  size of ringbuff used
  */
-uint16_t tuya_ring_buff_used_size_get(TUYA_RINGBUFF_T ringbuff);
+uint32_t tuya_ring_buff_used_size_get(TUYA_RINGBUFF_T ringbuff);
 
 /**
  * @brief ringbuff data read 
@@ -77,7 +77,7 @@ uint16_t tuya_ring_buff_used_size_get(TUYA_RINGBUFF_T ringbuff);
  * @param[in]   len:      read len
  * @return  length of the data read
  */
-uint16_t tuya_ring_buff_read(TUYA_RINGBUFF_T ringbuff, void *data, uint16_t len);
+uint32_t tuya_ring_buff_read(TUYA_RINGBUFF_T ringbuff, void *data, uint32_t len);
 
 /**
  * @brief ringbuff data peek 
@@ -88,7 +88,7 @@ uint16_t tuya_ring_buff_read(TUYA_RINGBUFF_T ringbuff, void *data, uint16_t len)
  * @param[in]   len:      read len
  * @return  length of the data read
  */
-uint16_t tuya_ring_buff_peek(TUYA_RINGBUFF_T ringbuff, void *data, uint16_t len);
+uint32_t tuya_ring_buff_peek(TUYA_RINGBUFF_T ringbuff, void *data, uint32_t len);
 
 /**
  * @brief ringbuff data write 
@@ -98,7 +98,7 @@ uint16_t tuya_ring_buff_peek(TUYA_RINGBUFF_T ringbuff, void *data, uint16_t len)
  * @param[in]   len:      write len
  * @return  length of the data write
  */
-uint16_t tuya_ring_buff_write(TUYA_RINGBUFF_T ringbuff, const void *data, uint16_t len);
+uint32_t tuya_ring_buff_write(TUYA_RINGBUFF_T ringbuff, const void *data, uint32_t len);
 
 
 #ifdef __cplusplus

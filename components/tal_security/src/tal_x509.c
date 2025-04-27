@@ -213,7 +213,7 @@ OPERATE_RET tuya_x509_get_fingerprint(uint8_t *buf, uint32_t buflen, X509_finger
     }
 
     if (pem_format) {
-        tal_free(p);
+        tal_free((void *)p);
     }
 
     return rt;

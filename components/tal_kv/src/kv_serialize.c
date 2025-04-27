@@ -126,7 +126,7 @@ int kv_serialize(const kv_db_t *db, const uint32_t dbcnt, char **out, uint32_t *
 
         default: {
             PR_ERR("type invalid %d", db[i].tp);
-            tal_free(buf);
+            tal_free((void *)buf);
             return OPRT_COM_ERROR;
         }
         }

@@ -117,7 +117,7 @@ tuya_transport_array_destroy(tuya_transport_array_handle_t transport_handle)
             tuya_transporter_destroy(transport_handle->array[i]);
         }
     }
-    tal_free(transport_handle);
+    tal_free((void *)transport_handle);
     return OPRT_OK;
 }
 

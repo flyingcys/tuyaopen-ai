@@ -230,7 +230,7 @@ static inline void *lfs_malloc(size_t size)
 static inline void lfs_free(void *p)
 {
 #ifndef LFS_NO_MALLOC
-    tal_free(p);
+    tal_free((void *)p);
 #else
     (void)p;
 #endif

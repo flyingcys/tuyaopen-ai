@@ -155,7 +155,7 @@ int tuya_ota_init(tuya_ota_config_t *config)
         return OPRT_MALLOC_FAILED;
     }
     memset(s_ota_ctx, 0, sizeof(tuya_ota_t));
-    memcpy(&s_ota_ctx->config, config, sizeof(tuya_ota_config_t));
+    memcpy((void *)&s_ota_ctx->config, config, sizeof(tuya_ota_config_t));
 
     return OPRT_OK;
 }
@@ -181,7 +181,7 @@ static void ota_process_thread_func(void *arg)
     download_cfg.user_data = ota;
 
     http_file_download(&download_cfg);
-    tal_free(cert);
+    tal_free((void *)cert);
 }
 
 /**

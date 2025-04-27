@@ -1,0 +1,20 @@
+CC = gcc
+CFLAGS = -Wall -Wextra -std=c99 -g
+LDFLAGS = -lasound -lpthread
+
+SOURCES = test_record.c audio/alsa.c audio/wav_writer.c
+TARGET = test_record
+
+all: $(TARGET)
+
+$(TARGET): $(SOURCES)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+clean:
+	rm -f $(TARGET) *.wav
+
+install_deps:
+	sudo apt-get update
+	sudo apt-get install -y libasound2-dev
+
+.PHONY: all clean install_deps 

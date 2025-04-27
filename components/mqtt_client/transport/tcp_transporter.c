@@ -349,7 +349,7 @@ OPERATE_RET tuya_tcp_transporter_write(tuya_transporter_t t, uint8_t *buf, int l
 OPERATE_RET tuya_tcp_transporter_destroy(tuya_transporter_t transporter)
 {
     if (transporter) {
-        tal_free(transporter);
+        tal_free((void *)transporter);
     }
     return OPRT_OK;
 }

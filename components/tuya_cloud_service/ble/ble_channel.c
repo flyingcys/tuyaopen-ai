@@ -181,14 +181,14 @@ static void __response_to_app_by_subpack(uint16_t type)
         if ((subpack_len - subpack_sent) < pkg_data_len) {
             pkg_data_len = subpack_len - subpack_sent;
         }
-        memcpy(pkg_buff + pkg_offset, s_ble_channel_mgr.subpack_data + subpack_sent, pkg_data_len);
+        memcpy((void *)pkg_buff + pkg_offset, s_ble_channel_mgr.subpack_data + subpack_sent, pkg_data_len);
         tuya_ble_send(type, 0, pkg_buff, pkg_offset + pkg_data_len);
 
         s_ble_channel_mgr.subpack_sent += pkg_data_len;
         s_ble_channel_mgr.subpack_no++;
     }
 
-    tal_free(pkg_buff);
+    tal_free((void *)pkg_buff);
 }
 
 /**
@@ -209,7 +209,7 @@ void ble_channle_ack(uint16_t type, uint8_t *data, uint32_t len)
 {
     if (s_ble_channel_mgr.rsp_data) {
         PR_ERR("pre subpack data overwrite!");
-        tal_free(s_ble_channel_mgr.rsp_data);
+        tal_free((void *)s_ble_channel_mgr.rsp_data);
     }
 
     memset(&s_ble_channel_mgr, 0, sizeof(s_ble_channel_mgr));
@@ -266,7 +266,7 @@ void ble_session_channel_process(ble_packet_t *req, void *user_data)
                 PR_DEBUG("first downlink subpacket, totalLen:%u", totalLen);
 
                 if (pBuffer) {
-                    tal_free(pBuffer);
+                    tal_free((void *)pBuffer);
                     pBuffer = NULL;
                 }
                 pBuffer = tal_malloc(totalLen);
@@ -277,7 +277,7 @@ void ble_session_channel_process(ble_packet_t *req, void *user_data)
 
                 offset += 1; // skip version and reserve, total 1B
                 curSubpacketLen = pRawLen - offset;
-                memcpy(pBuffer + receivedLen, pRawData + offset, curSubpacketLen);
+                memcpy((void *)pBuffer + receivedLen, pRawData + offset, curSubpacketLen);
                 receivedLen += curSubpacketLen;
                 curSubpacketNo = 0;
             } else { // subsequent subpackets
@@ -290,7 +290,7 @@ void ble_session_channel_process(ble_packet_t *req, void *user_data)
                 offset += __extract_packet_len(pRawData + offset,
                                                &curSubpacketNo); // parse current subpacket no
                 curSubpacketLen = pRawLen - offset;
-                memcpy(pBuffer + receivedLen, pRawData + offset, curSubpacketLen);
+                memcpy((void *)pBuffer + receivedLen, pRawData + offset, curSubpacketLen);
                 receivedLen += curSubpacketLen;
             }
 
@@ -301,7 +301,7 @@ void ble_session_channel_process(ble_packet_t *req, void *user_data)
             ble_channel_ack_t *pAck = tal_malloc(sizeof(ble_channel_ack_t));
             if (pAck == NULL) {
                 PR_ERR("malloc error for pAck in __handle_bt_timer_task");
-                tal_free(pBuffer);
+                tal_free((void *)pBuffer);
                 pBuffer = NULL;
                 return;
             }
@@ -314,11 +314,11 @@ void ble_session_channel_process(ble_packet_t *req, void *user_data)
             if (receivedLen < totalLen) {
                 pAck->status = SUBPACKET_RECV_ONE_AND_NEXT;
                 tuya_ble_send(req->type, req->sn, (uint8_t *)pAck, sizeof(ble_channel_ack_t));
-                tal_free(pAck);
+                tal_free((void *)pAck);
             } else {
                 pAck->status = SUBPACKET_RECV_ALL_DONE;
                 tuya_ble_send(req->type, req->sn, (uint8_t *)pAck, sizeof(ble_channel_ack_t));
-                tal_free(pAck);
+                tal_free((void *)pAck);
 
                 tuya_ble_raw_print("recv_donwlink_cmd", 16, pBuffer, totalLen);
                 ble_channel_process(pBuffer);
@@ -332,7 +332,7 @@ void ble_session_channel_process(ble_packet_t *req, void *user_data)
         uint8_t status = pRawData[2];
         if (status == 0) { // complete subpack send
             if (s_ble_channel_mgr.rsp_data) {
-                tal_free(s_ble_channel_mgr.rsp_data);
+                tal_free((void *)s_ble_channel_mgr.rsp_data);
             }
             memset(&s_ble_channel_mgr, 0, sizeof(s_ble_channel_mgr));
         } else if (status == 1) { // continue subpack send

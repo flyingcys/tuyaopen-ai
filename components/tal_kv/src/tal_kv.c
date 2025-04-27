@@ -285,7 +285,7 @@ int tal_kv_get(const char *key, uint8_t **value, size_t *length)
     tal_mutex_unlock(lfs_mutex);
     if (result <= 0) {
         *length = 0;
-        tal_free(ec_data);
+        tal_free((void *)ec_data);
         PR_ERR("kv read error %d", result);
         return OPRT_KVS_RD_FAIL;
     }
@@ -296,7 +296,7 @@ int tal_kv_get(const char *key, uint8_t **value, size_t *length)
     memcpy(iv, lfs_kv_cfg.seed, 16);
     result = tal_aes128_cbc_decode(ec_data, ec_len, (uint8_t *)lfs_kv_cfg.key, iv, &dec_data, (uint32_t *)&dec_len);
     dec_len = tal_aes_get_actual_length(dec_data, dec_len);
-    tal_free(ec_data);
+    tal_free((void *)ec_data);
     if (OPRT_OK != result || dec_len > ec_len) {
         PR_ERR("key %s decrypt failed %d, %d-%d", key, result, dec_len, ec_len);
         return OPRT_BUFFER_NOT_ENOUGH;
@@ -349,7 +349,7 @@ int tal_kv_free(uint8_t *value)
     if (NULL == value) {
         return OPRT_INVALID_PARM;
     }
-    tal_free(value);
+    tal_free((void *)value);
 
     return OPRT_OK;
 }
@@ -421,7 +421,7 @@ int tal_kv_serialize_set(const char *key, kv_db_t *db, size_t dbcnt)
     }
     PR_TRACE("write buf:%s", buf);
     ret = tal_kv_set(key, (const uint8_t *)buf, len);
-    tal_free(buf);
+    tal_free((void *)buf);
     if (OPRT_OK != ret) {
         PR_ERR("kv_set fails %s %d", key, ret);
     }
@@ -459,7 +459,7 @@ int tal_kv_serialize_get(const char *key, kv_db_t *db, size_t dbcnt)
         return ret;
     }
     ret = kv_deserialize((char *)buf, db, dbcnt);
-    tal_free(buf);
+    tal_free((void *)buf);
     if (OPRT_OK != ret) {
         PR_ERR("kv_deserialize fail. %d", ret);
     }

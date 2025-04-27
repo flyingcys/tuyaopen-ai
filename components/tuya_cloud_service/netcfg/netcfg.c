@@ -197,7 +197,7 @@ int netcfg_uninit(void)
                 DeleteNodeAndFree(phandler, node);
             }
         }
-        tal_free(p_netcfg_session);
+        tal_free((void *)p_netcfg_session);
         p_netcfg_session = NULL;
     }
 

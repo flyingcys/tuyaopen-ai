@@ -542,10 +542,10 @@ OPERATE_RET tal_ble_bt_init(TAL_BLE_ROLE_E role, const TAL_BLE_EVT_FUNC_CB ble_e
 OPERATE_RET tal_ble_bt_deinit(TAL_BLE_ROLE_E role)
 {
     if (ptkl_ble_service_char) {
-        tal_free(ptkl_ble_service_char);
+        tal_free((void *)ptkl_ble_service_char);
     }
     if (ptkl_ble_service) {
-        tal_free(ptkl_ble_service);
+        tal_free((void *)ptkl_ble_service);
     }
 
     return tkl_ble_stack_deinit(role);

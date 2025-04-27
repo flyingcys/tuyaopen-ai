@@ -35,7 +35,7 @@ static bool ble_key_generate(ble_crypto_param_t *p, uint8_t mode, uint8_t *key_o
     memset(key_in_buffer, 0, sizeof(key_in_buffer));
 
     len = 0;
-    memcpy(key_in_buffer + len, p->auth_key, AUTH_KEY_LEN);
+    memcpy((void *)key_in_buffer + len, p->auth_key, AUTH_KEY_LEN);
     len += AUTH_KEY_LEN;
 
     if ((16 + PAIR_RANDOM_LEN * 2) > KEY_IN_BUFFER_LEN_MAX) {
@@ -46,42 +46,42 @@ static bool ble_key_generate(ble_crypto_param_t *p, uint8_t mode, uint8_t *key_o
 
     switch (mode) {
     case ENCRYPTION_MODE_KEY_11:
-        memcpy(key_in_buffer + len, p->auth_key, AUTH_KEY_LEN);
+        memcpy((void *)key_in_buffer + len, p->auth_key, AUTH_KEY_LEN);
         len += AUTH_KEY_LEN;
-        memcpy(key_in_buffer + len, p->uuid, 16);
+        memcpy((void *)key_in_buffer + len, p->uuid, 16);
         len += 16;
-        memcpy(key_in_buffer + len, service_rand, 16);
+        memcpy((void *)key_in_buffer + len, service_rand, 16);
         len += 16;
         break;
     case ENCRYPTION_MODE_KEY_12:
-        memcpy(key_in_buffer, key_out_key11, 16);
+        memcpy((void *)key_in_buffer, key_out_key11, 16);
         len += 16;
-        memcpy(key_in_buffer + len, p->pair_rand, PAIR_RANDOM_LEN);
+        memcpy((void *)key_in_buffer + len, p->pair_rand, PAIR_RANDOM_LEN);
         len += PAIR_RANDOM_LEN;
         break;
     case ENCRYPTION_MODE_KEY_14:
-        memcpy(key_in_buffer + len, p->login_key, LOGIN_KEY_LEN_16);
+        memcpy((void *)key_in_buffer + len, p->login_key, LOGIN_KEY_LEN_16);
         len += LOGIN_KEY_LEN_16;
-        memcpy(key_in_buffer + len, p->sec_key, SECRET_KEY_LEN);
+        memcpy((void *)key_in_buffer + len, p->sec_key, SECRET_KEY_LEN);
         len += SECRET_KEY_LEN;
         break;
     case ENCRYPTION_MODE_SESSION_KEY15:
-        memcpy(key_in_buffer + len, p->login_key, LOGIN_KEY_LEN_16);
+        memcpy((void *)key_in_buffer + len, p->login_key, LOGIN_KEY_LEN_16);
         len += LOGIN_KEY_LEN_16;
-        memcpy(key_in_buffer + len, p->sec_key, SECRET_KEY_LEN);
+        memcpy((void *)key_in_buffer + len, p->sec_key, SECRET_KEY_LEN);
         len += SECRET_KEY_LEN;
-        memcpy(key_in_buffer + len, p->pair_rand, PAIR_RANDOM_LEN);
+        memcpy((void *)key_in_buffer + len, p->pair_rand, PAIR_RANDOM_LEN);
         len += PAIR_RANDOM_LEN;
         break;
     case ENCRYPTION_MODE_KEY_16:
         // KEY16 = md5(auth key + md5(device uuid) + server rand)
-        memcpy(key_in_buffer + len, p->auth_key, AUTH_KEY_LEN);
+        memcpy((void *)key_in_buffer + len, p->auth_key, AUTH_KEY_LEN);
         len += AUTH_KEY_LEN;
         // md5(uuid)
         tal_md5_ret(p->uuid, 16, uuid_key);
-        memcpy(key_in_buffer + len, uuid_key, 16);
+        memcpy((void *)key_in_buffer + len, uuid_key, 16);
         len += 16;
-        memcpy(key_in_buffer + len, service_rand, 16);
+        memcpy((void *)key_in_buffer + len, service_rand, 16);
         len += 16;
         break;
     default:
@@ -95,10 +95,10 @@ static bool ble_key_generate(ble_crypto_param_t *p, uint8_t mode, uint8_t *key_o
 
     memset(key_out_hex, 0, sizeof(key_out_hex));
     tal_md5_ret(key_in_buffer, len, key_out_hex);
-    memcpy(key_out, key_out_hex, 16);
+    memcpy((void *)key_out, key_out_hex, 16);
 
     if (ENCRYPTION_MODE_KEY_11 == mode) {
-        memcpy(key_out_key11, key_out_hex, 16);
+        memcpy((void *)key_out_key11, key_out_hex, 16);
     }
 
     return true;
@@ -117,7 +117,7 @@ static uint16_t ble_add_pkcs(uint8_t *p, uint16_t len)
         for (i = 0; i < cz; i++) {
             pkcs[i] = cz;
         }
-        memcpy(p + len, pkcs, cz);
+        memcpy((void *)p + len, pkcs, cz);
         out_len = len + cz;
     }
     return (out_len);
@@ -182,14 +182,14 @@ int tuya_ble_adv_id_encrypt(uint8_t *key, uint8_t *in_buf, uint8_t in_len, uint8
     hex2str(aes_buf, in_buf, in_len);
     pkcslen = ble_add_pkcs(aes_buf, in_len * 2 + 1);
     if (pkcslen > bufsize * 2) {
-        tal_free(aes_buf);
+        tal_free((void *)aes_buf);
         return OPRT_COM_ERROR;
     }
     int rt = tal_aes128_ecb_encode_raw(aes_buf, pkcslen, &aes_buf[bufsize], aes_key);
     if (OPRT_OK == rt) {
-        memcpy(out_buf, &aes_buf[bufsize], MAX_LENGTH_SECKEY);
+        memcpy((void *)out_buf, &aes_buf[bufsize], MAX_LENGTH_SECKEY);
     }
-    tal_free(aes_buf);
+    tal_free((void *)aes_buf);
 
     return rt;
 }
@@ -217,7 +217,7 @@ int tuya_ble_rsp_id_encrypt(uint8_t *key, uint8_t key_len, uint8_t *in_buf, uint
     uint8_t aes_iv[16];
 
     tal_md5_ret(key, key_len, aes_key);
-    memcpy(aes_iv, aes_key, 16);
+    memcpy((void *)aes_iv, aes_key, 16);
 
     return tal_aes128_cbc_encode_raw(in_buf, in_len, aes_key, aes_iv, out_buf);
 }
@@ -250,7 +250,7 @@ uint8_t tuya_ble_encryption(ble_crypto_param_t *p, uint8_t encryption_mode, uint
     }
 
     if (encryption_mode == ENCRYPTION_MODE_NONE) {
-        memcpy(out_buf, in_buf, in_len);
+        memcpy((void *)out_buf, in_buf, in_len);
         *out_len = in_len;
         return 0;
     } else {
@@ -304,7 +304,7 @@ uint8_t tuya_ble_decryption(ble_crypto_param_t *p, uint8_t *in_buf, uint32_t in_
 
     if (in_buf[0] == ENCRYPTION_MODE_NONE) {
         len = in_len - 1;
-        memcpy(out_buf, in_buf + 1, len);
+        memcpy((void *)out_buf, in_buf + 1, len);
         *out_len = len;
         return 0;
     }
@@ -316,11 +316,11 @@ uint8_t tuya_ble_decryption(ble_crypto_param_t *p, uint8_t *in_buf, uint32_t in_
 
     mode = in_buf[0];
     if (mode == ENCRYPTION_MODE_KEY_11 || mode == ENCRYPTION_MODE_KEY_16) {
-        memcpy(service_rand, in_buf + 1, 16); // iv==rand
+        memcpy((void *)service_rand, in_buf + 1, 16); // iv==rand
     }
 
     if (ble_key_generate(p, mode, key)) {
-        memcpy(IV, in_buf + 1, 16);
+        memcpy((void *)IV, in_buf + 1, 16);
         *out_len = len;
         int rt = tal_aes128_cbc_decode_raw((uint8_t *)(in_buf + 17), len, key, IV, out_buf);
         return rt == OPRT_OK ? 0 : 3;

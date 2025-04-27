@@ -28,8 +28,18 @@ static int matop_service_data_receive_cb(void *context, const uint8_t *input, si
 
     PR_TRACE("atop response raw:\r\n%.*s", ilen, input);
 
+    // Create a null-terminated copy of the input for safe JSON parsing
+    char *json_str = tal_malloc(ilen + 1);
+    if (json_str == NULL) {
+        return OPRT_MALLOC_FAILED;
+    }
+    memcpy(json_str, input, ilen);
+    json_str[ilen] = '\0';
+
     /* json parse */
-    cJSON *root = cJSON_Parse((const char *)input);
+    cJSON *root = cJSON_Parse(json_str);
+    tal_free(json_str);  // Free the temporary string
+    
     if (NULL == root) {
         PR_ERR("Json parse error");
         return OPRT_CJSON_PARSE_ERR;
@@ -86,7 +96,7 @@ static int matop_service_data_receive_cb(void *context, const uint8_t *input, si
         mqtt_atop_message_t *entry = *current;
         if (entry == target_message) {
             *current = entry->next;
-            tal_free(entry);
+            tal_free((void *)entry);
         } else {
             current = &entry->next;
         }
@@ -139,7 +149,7 @@ static int matop_service_file_rawdata_receive_cb(void *context, const uint8_t *i
         mqtt_atop_message_t *entry = *current;
         if (entry == target_message) {
             *current = entry->next;
-            tal_free(entry);
+            tal_free((void *)entry);
         } else {
             current = &entry->next;
         }
@@ -237,7 +247,7 @@ int matop_serice_yield(matop_context_t *context)
                 entry->notify_cb(&(atop_base_response_t){.success = false}, entry->user_data);
             }
             *current = entry->next;
-            tal_free(entry);
+            tal_free((void *)entry);
             return OPRT_TIMEOUT;
         } else {
             current = &entry->next;
@@ -278,7 +288,7 @@ int matop_serice_destory(matop_context_t *context)
     for (current = &context->message_list; *current;) {
         mqtt_atop_message_t *entry = *current;
         *current = entry->next;
-        tal_free(entry);
+        tal_free((void *)entry);
     }
 
     return OPRT_OK;
@@ -329,7 +339,7 @@ int matop_service_request_async(matop_context_t *context, const mqtt_atop_reques
     char *request_buffer = tal_malloc(request_bufferlen);
     if (request_buffer == NULL) {
         PR_ERR("response_buffer malloc fail");
-        tal_free(message_handle);
+        tal_free((void *)message_handle);
         return OPRT_MALLOC_FAILED;
     }
 
@@ -345,11 +355,11 @@ int matop_service_request_async(matop_context_t *context, const mqtt_atop_reques
     PR_DEBUG("atop request: %s", request_buffer);
 
     rt = matop_request_send(matop, (const uint8_t *)request_buffer, request_datalen);
-    tal_free(request_buffer);
+    tal_free((void *)request_buffer);
 
     if (rt != OPRT_OK) {
         PR_ERR("mqtt_atop_request_send error:%d", rt);
-        tal_free(message_handle);
+        tal_free((void *)message_handle);
         return rt;
     }
 
@@ -406,7 +416,7 @@ int matop_service_client_reset(matop_context_t *context)
                                          .data_len = buffer_len,
                                      },
                                      NULL, context);
-    tal_free(buffer);
+    tal_free((void *)buffer);
     return rt;
 }
 
@@ -452,7 +462,7 @@ int matop_service_version_update(matop_context_t *context, const char *versions)
                                          .data_len = buffer_len,
                                      },
                                      NULL, context);
-    tal_free(buffer);
+    tal_free((void *)buffer);
     return rt;
 }
 
@@ -497,7 +507,7 @@ int matop_service_upgrade_status_update(matop_context_t *context, int channel, i
                                          .data_len = buffer_len,
                                      },
                                      NULL, context);
-    tal_free(buffer);
+    tal_free((void *)buffer);
     return rt;
 }
 
@@ -542,7 +552,7 @@ int matop_service_upgrade_info_get(matop_context_t *context, int channel, mqtt_a
                                                                   .data_len = buffer_len,
                                                                   .timeout = 10000},
                                      notify_cb, user_data);
-    tal_free(buffer);
+    tal_free((void *)buffer);
     return rt;
 }
 
@@ -586,7 +596,7 @@ int matop_service_auto_upgrade_info_get(matop_context_t *context, mqtt_atop_resp
                                          .data_len = buffer_len,
                                      },
                                      notify_cb, user_data);
-    tal_free(buffer);
+    tal_free((void *)buffer);
     return rt;
 }
 
@@ -635,7 +645,7 @@ int matop_service_file_download_range(matop_context_t *context, const char *url,
                                                                   .data_len = buffer_len,
                                                                   .timeout = timeout_ms},
                                      notify_cb, user_data);
-    tal_free(buffer);
+    tal_free((void *)buffer);
     return rt;
 }
 
@@ -672,7 +682,7 @@ int matop_service_put_rst_log(matop_context_t *context, int reason)
     char *buffer = tal_malloc(UPDATE_VERSION_BUFFER_LEN);
     if (NULL == buffer) {
         PR_ERR("post buffer malloc fail");
-        tal_free(rst_buffer);
+        tal_free((void *)rst_buffer);
         return OPRT_MALLOC_FAILED;
     }
 
@@ -688,8 +698,8 @@ int matop_service_put_rst_log(matop_context_t *context, int reason)
                                          .data_len = buffer_len,
                                      },
                                      NULL, context);
-    tal_free(buffer);
-    tal_free(rst_buffer);
+    tal_free((void *)buffer);
+    tal_free((void *)rst_buffer);
     return rt;
 }
 
@@ -752,7 +762,7 @@ int matop_service_dynamic_cfg_get(matop_context_t *context, HTTP_DYNAMIC_CFG_TYP
                                          .data_len = buffer_len,
                                      },
                                      notify_cb, user_data);
-    tal_free(buffer);
+    tal_free((void *)buffer);
     return rt;
 }
 
@@ -819,7 +829,7 @@ int matop_service_dynamic_cfg_ack(matop_context_t *context, const char *timezone
                                      },
                                      notify_cb, user_data);
 
-    tal_free(buffer);
+    tal_free((void *)buffer);
     return rt;
 }
 

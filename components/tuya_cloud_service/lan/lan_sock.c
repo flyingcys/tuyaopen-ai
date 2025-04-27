@@ -99,7 +99,7 @@ void __ty_sock_loop_deinit(void)
                 g_sloop->cnt--;
             }
         }
-        tal_free(g_sloop->readers);
+        tal_free((void *)g_sloop->readers);
         g_sloop->readers = NULL;
     }
     if (g_sloop->queue) {
@@ -108,7 +108,7 @@ void __ty_sock_loop_deinit(void)
     if (g_sloop->thread) {
         tal_thread_delete(g_sloop->thread);
     }
-    tal_free(g_sloop);
+    tal_free((void *)g_sloop);
     g_sloop = NULL;
     PR_DEBUG("deinit sock loop success");
     return;
@@ -125,7 +125,7 @@ void __ty_add_sock_reader(sloop_sock_t sock_info)
         if ((sock_info.sock == g_sloop->readers[idx].sock) && (g_sloop->readers[idx].read == sock_info.read)) {
             PR_DEBUG("update lan sock %d,read:%p", sock_info.sock, sock_info.read);
             memset(&g_sloop->readers[idx], 0, sizeof(sloop_sock_t));
-            memcpy(&g_sloop->readers[idx], &sock_info, sizeof(sloop_sock_t));
+            memcpy((void *)&g_sloop->readers[idx], &sock_info, sizeof(sloop_sock_t));
             break;
         }
     }
@@ -135,7 +135,7 @@ void __ty_add_sock_reader(sloop_sock_t sock_info)
             if (-1 == g_sloop->readers[idx].sock) {
                 PR_DEBUG("reg lan sock %d,read:%p", sock_info.sock, sock_info.read);
                 memset(&g_sloop->readers[idx], 0, sizeof(sloop_sock_t));
-                memcpy(&g_sloop->readers[idx], &sock_info, sizeof(sloop_sock_t));
+                memcpy((void *)&g_sloop->readers[idx], &sock_info, sizeof(sloop_sock_t));
                 g_sloop->cnt++;
                 break;
             }
@@ -268,10 +268,10 @@ void tuya_sock_loop_run(void *data)
 
 Err:
     if (rfds) {
-        tal_free(rfds);
+        tal_free((void *)rfds);
     }
     if (efds) {
-        tal_free(efds);
+        tal_free((void *)efds);
     }
 
     tuya_lan_exit();

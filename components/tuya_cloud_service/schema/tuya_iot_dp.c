@@ -47,7 +47,7 @@ static void dp_sync_cb(int result, void *user_data)
         tuya_iot_dp_sync_start(tuya_iot_client_get(), 5);
     }
 
-    tal_free(dpvalid);
+    tal_free((void *)dpvalid);
 }
 
 /**
@@ -79,7 +79,7 @@ void tuya_iot_dp_sync_process(void *data)
     }
 
     tuya_iot_dp_report_json_async(client, dpsjson, NULL, dp_sync_cb, dpvalid, 5000);
-    tal_free(dpsjson);
+    tal_free((void *)dpsjson);
 }
 
 /**
@@ -151,7 +151,7 @@ static void tuya_iot_dp_parse_on_worq(void *args)
     }
 
     cJSON_Delete(msg->data_js);
-    tal_free(msg);
+    tal_free((void *)msg);
 }
 
 /**
@@ -247,7 +247,7 @@ int tuya_iot_dp_obj_report(tuya_iot_client_t *client, const char *devid, dp_obj_
 
     ret = dp_rept_valid_check(schema, &dpin, dpvalid);
     if (OPRT_OK != ret) {
-        tal_free(dpvalid);
+        tal_free((void *)dpvalid);
         return ret;
     }
 
@@ -258,7 +258,7 @@ int tuya_iot_dp_obj_report(tuya_iot_client_t *client, const char *devid, dp_obj_
 
         ble_dpin = tal_malloc(sizeof(dp_rept_in_t) + sizeof(dp_obj_t) * dpvalid->num);
         if (NULL == ble_dpin) {
-            tal_free(dpvalid);
+            tal_free((void *)dpvalid);
             return OPRT_MALLOC_FAILED;
         }
         ble_dpin->flags = flags;
@@ -272,13 +272,13 @@ int tuya_iot_dp_obj_report(tuya_iot_client_t *client, const char *devid, dp_obj_
                 if (dpvalid->dpid[i] != dpin.dps[j].id) {
                     continue;
                 }
-                memcpy(&ble_dpin->dps[i], &dpin.dps[j], sizeof(dp_obj_t));
+                memcpy((void *)&ble_dpin->dps[i], &dpin.dps[j], sizeof(dp_obj_t));
             }
         }
         PR_DEBUG("ble channel report");
         ret = tuya_ble_dp_report(ble_dpin);
-        tal_free(ble_dpin);
-        tal_free(dpvalid);
+        tal_free((void *)ble_dpin);
+        tal_free((void *)dpvalid);
         tuya_iot_dp_sync_start(client, 5);
 
         return ret;
@@ -300,8 +300,8 @@ int tuya_iot_dp_obj_report(tuya_iot_client_t *client, const char *devid, dp_obj_
         PR_DEBUG("lan channel report");
         dp_rept_json_append(schema, dpout.dpsjson, NULL, NULL, 0, &out);
         ret = tuya_lan_dp_report(out);
-        tal_free(out);
-        tal_free(dpvalid);
+        tal_free((void *)out);
+        tal_free((void *)dpvalid);
         tuya_iot_dp_sync_start(client, 5);
     } else if (tuya_iot_is_connected()) {
         PR_DEBUG("mqtt channel report");
@@ -311,10 +311,10 @@ int tuya_iot_dp_obj_report(tuya_iot_client_t *client, const char *devid, dp_obj_
     }
 
     if (dpout.dpsjson) {
-        tal_free(dpout.dpsjson);
+        tal_free((void *)dpout.dpsjson);
     }
     if (dpout.timejson) {
-        tal_free(dpout.timejson);
+        tal_free((void *)dpout.timejson);
     }
 
     return ret;
@@ -434,7 +434,7 @@ int tuya_iot_dp_raw_report(tuya_iot_client_t *client, const char *devid, dp_raw_
         char *out = NULL;
         dp_rept_json_append(schema, dpout.dpsjson, NULL, NULL, 0, &out);
         ret = tuya_lan_dp_report(out);
-        tal_free(out);
+        tal_free((void *)out);
     } else if (tuya_iot_is_connected()) {
         ret = tuya_iot_dp_report_json_async(client, dpout.dpsjson, NULL, dp_raw_async_cb, NULL, timeout);
     } else {
@@ -442,7 +442,7 @@ int tuya_iot_dp_raw_report(tuya_iot_client_t *client, const char *devid, dp_raw_
     }
 
     if (dpout.dpsjson) {
-        tal_free(dpout.dpsjson);
+        tal_free((void *)dpout.dpsjson);
     }
 
     return ret;

@@ -937,7 +937,7 @@ fail:
 
 exit:
     tal_sha256_free(ctx);
-    tal_free(buf);
+    tal_free((void *)buf);
 
     return (ret);
 }

@@ -22,4 +22,4 @@ target_include_directories(${COMPONENT_NAME}
     ${INCS}
 )
 
-target_link_libraries(${COMPONENT_NAME} PUBLIC port utilities)
+target_link_libraries(${COMPONENT_NAME} PUBLIC port utilities tal_driver)

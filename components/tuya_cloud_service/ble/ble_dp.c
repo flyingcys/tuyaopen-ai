@@ -58,22 +58,22 @@ void tuya_change_bt_dp_tlv(dp_type type, void *data, uint16_t *len)
         if (enum_value <= 0xff) {
             uint8_t enum_byte = *(uint32_t *)data;
             *len = 1;
-            memcpy(data, &enum_byte, *len);
+            memcpy((void *)data, &enum_byte, *len);
         } else if (enum_value <= 0xffff) {
             uint16_t enum_short = *(uint32_t *)data;
             *len = 2;
             enum_short = UNI_HTONS(enum_short);
-            memcpy(data, &enum_short, *len);
+            memcpy((void *)data, &enum_short, *len);
         } else {
             uint32_t enum_int = *(uint32_t *)data;
             *len = 4;
             enum_int = UNI_HTONL(enum_int);
-            memcpy(data, &enum_int, *len);
+            memcpy((void *)data, &enum_int, *len);
         }
     } else if (DT_BOOL == type) {
         uint8_t bool_value = *(uint32_t *)data;
         *len = 1;
-        memcpy(data, &bool_value, *len);
+        memcpy((void *)data, &bool_value, *len);
     }
 }
 
@@ -89,8 +89,8 @@ void free_klv_list(klv_node_s *list)
     do {
         next_node = node->next;
         // free(node);
-        tal_free((uint8_t *)(node->data));
-        tal_free((uint8_t *)node);
+        tal_free((void *)(node->data));
+        tal_free((void *)node);
         node = next_node;
     } while (node);
 }
@@ -120,7 +120,7 @@ klv_node_s *make_klv_list(klv_node_s *list, uint8_t id, dp_type type, void *data
         if (NULL == p_data) {
             goto err_ret;
         }
-        memcpy(p_data, data, len);
+        memcpy((void *)p_data, data, len);
     }
 
     tuya_change_bt_dp_tlv(type, p_data, &len);
@@ -152,17 +152,17 @@ klv_node_s *make_klv_list(klv_node_s *list, uint8_t id, dp_type type, void *data
     } else {
         // Enumerations and BOOL have been converted to byte order in tuya_change_bt_dp_tlv. You can copy them directly
         if (len > 0) {
-            memcpy((void *)node->data, (unsigned char *)p_data, len);
+            memcpy((void *)(void *)node->data, (unsigned char *)p_data, len);
         }
     }
     node->next = list;
-    tal_free(p_data);
+    tal_free((void *)p_data);
     return node;
 
 err_ret:
     PR_ERR("input err");
     free_klv_list(list);
-    tal_free(p_data);
+    tal_free((void *)p_data);
     return NULL;
 }
 
@@ -214,7 +214,7 @@ OPERATE_RET klvlist_2_data(klv_node_s *list, uint8_t **data, uint32_t *len, uint
         // fill time
         if (NULL != time_stamp) {
             mk_data[offset++] = 1;
-            memcpy(&mk_data[offset], time_stamp, 4);
+            memcpy((void *)&mk_data[offset], time_stamp, 4);
             offset += 4;
         }
     } else if (2 == type) {
@@ -235,7 +235,7 @@ OPERATE_RET klvlist_2_data(klv_node_s *list, uint8_t **data, uint32_t *len, uint
             mk_data[offset++] = node->len;
         }
         if (node->len > 0) {
-            memcpy(&mk_data[offset], node->data, node->len);
+            memcpy((void *)&mk_data[offset], node->data, node->len);
         }
         offset += node->len;
         node = node->next;
@@ -297,19 +297,19 @@ OPERATE_RET data_2_klvlist(uint8_t *data, uint32_t len, klv_node_s **list)
         if (node->len > 0) {
             node->data = tal_malloc(node->len + 1);
             if (node->data == NULL) {
-                tal_free((uint8_t *)node);
+                tal_free((void *)node);
                 free_klv_list(klv_list);
                 return OPRT_MALLOC_FAILED;
             }
 
             if ((len - offset) < node->len) { // is remain data len enougn?
-                tal_free(node->data);
-                tal_free((uint8_t *)node);
+                tal_free((void *)node->data);
+                tal_free((void *)node);
                 free_klv_list(klv_list);
                 return OPRT_COM_ERROR;
             }
 
-            memcpy(node->data, &data[offset], node->len);
+            memcpy((void *)node->data, &data[offset], node->len);
             node->data[node->len] = 0;
         }
 
@@ -333,7 +333,7 @@ static OPERATE_RET __result_code_resp(uint16_t type, uint32_t ack_sn, uint8_t re
 static OPERATE_RET __result_code_resp_v4(uint16_t type, uint32_t ack_sn, uint8_t *data, uint8_t result_code)
 {
     uint8_t data_code[6] = {0}; // version(1byte)+R_SN(4byte)+STATE(1byte)
-    memcpy(data_code, data, 5);
+    memcpy((void *)data_code, data, 5);
     data_code[5] = result_code;
 
     return tuya_ble_send(type, ack_sn, data_code, 6);
@@ -419,7 +419,7 @@ OPERATE_RET ty_bt_dp_data_report(klv_node_s *p_node, uint32_t time_stamp)
 
     type = (NULL != p_time_stamp) ? FRM_DP_STAT_REPORT_WITH_TIME_V4 : FRM_DP_STAT_REPORT_V4;
     ret = __dp_data_report_data(type, p_new_data, new_data_len);
-    tal_free(p_new_data);
+    tal_free((void *)p_new_data);
     return ret;
 }
 
@@ -571,7 +571,7 @@ static int ble_dp_req(ble_packet_t *req, void *priv_data)
             char *p_base64 = tal_malloc(p_tmp->len / 3 * 4 + 5);
             tuya_base64_encode(p_tmp->data, p_base64, p_tmp->len);
             cJSON_AddStringToObject(p_dps, dp_id_str, p_base64);
-            tal_free(p_base64);
+            tal_free((void *)p_base64);
             break;
         }
         case DT_BOOL: {
@@ -687,7 +687,7 @@ static int ble_dp_query(ble_packet_t *req, void *priv_data)
         klvlist_2_data(p_node, &p_new_data, &new_data_len, NULL, TRUE, 0);
         free_klv_list(p_node);
         __dp_data_report_data(type, p_new_data, new_data_len);
-        tal_free(p_new_data);
+        tal_free((void *)p_new_data);
     }
 
     return OPRT_OK;

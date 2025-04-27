@@ -143,7 +143,7 @@ static OPERATE_RET __rcs_serialize(register_center_t *rcs, uint8_t **data, uint1
         buf[offset++] = TLV_CODE;
         buf[offset++] = len & 0xFF;
         buf[offset++] = (len >> 8) & 0xFF;
-        memcpy(&buf[offset], rcs->code, len);
+        memcpy((void *)&buf[offset], rcs->code, len);
         offset += len;
     }
 
@@ -151,7 +151,7 @@ static OPERATE_RET __rcs_serialize(register_center_t *rcs, uint8_t **data, uint1
     buf[offset++] = TLV_URL0;
     buf[offset++] = len & 0xFF;
     buf[offset++] = (len >> 8) & 0xFF;
-    memcpy(&buf[offset], rcs->url0, len);
+    memcpy((void *)&buf[offset], rcs->url0, len);
     offset += len;
 
 #if (TUYA_SECURITY_LEVEL != TUYA_SL_0)
@@ -159,15 +159,15 @@ static OPERATE_RET __rcs_serialize(register_center_t *rcs, uint8_t **data, uint1
     buf[offset++] = TLV_URLX;
     buf[offset++] = len & 0xFF;
     buf[offset++] = (len >> 8) & 0xFF;
-    memcpy(&buf[offset], rcs->urlx, len);
+    memcpy((void *)&buf[offset], rcs->urlx, len);
     offset += len;
 
     len = outlen;
     buf[offset++] = TLV_CA;
     buf[offset++] = len & 0xFF;
     buf[offset++] = (len >> 8) & 0xFF;
-    memcpy(&buf[offset], out, len);
-    tal_free(out);
+    memcpy((void *)&buf[offset], out, len);
+    tal_free((void *)out);
 #endif
 
     *data = buf;
@@ -206,7 +206,7 @@ static OPERATE_RET __rcs_deserialize(uint8_t *data, uint16_t length, register_ce
                 PR_ERR("malloc err");
                 return OPRT_MALLOC_FAILED;
             }
-            memcpy(buf, &(data[offset]), len);
+            memcpy((void *)buf, &(data[offset]), len);
 
             if (TLV_CODE == type) {
                 rcs->code = (char *)buf;
@@ -218,7 +218,7 @@ static OPERATE_RET __rcs_deserialize(uint8_t *data, uint16_t length, register_ce
                 rcs->ca_cert = buf;
                 rcs->ca_cert_len = len;
             } else {
-                tal_free(buf);
+                tal_free((void *)buf);
                 PR_ERR("type:%d", type);
                 return OPRT_INVALID_PARM;
             }
@@ -290,10 +290,10 @@ EXIT:
     if (OPRT_OK != rt) {
         PR_NOTICE("rcs restore failed %d", rt);
 
-        tal_free(rcs->code);
-        tal_free(rcs->url0);
-        tal_free(rcs->urlx);
-        tal_free(rcs->ca_cert);
+        tal_free((void *)rcs->code);
+        tal_free((void *)rcs->url0);
+        tal_free((void *)rcs->urlx);
+        tal_free((void *)rcs->ca_cert);
     }
 
     if (NULL != root) {
@@ -307,21 +307,21 @@ static void __rcs_update(register_center_t *rcs)
 {
     if (s_tuya_rcs.source != RCS_CODE) {
         if (s_tuya_rcs.url0) {
-            tal_free(s_tuya_rcs.url0);
+            tal_free((void *)s_tuya_rcs.url0);
         }
         if (s_tuya_rcs.urlx) {
-            tal_free(s_tuya_rcs.urlx);
+            tal_free((void *)s_tuya_rcs.urlx);
         }
 
         if (s_tuya_rcs.code) {
-            tal_free(s_tuya_rcs.code);
+            tal_free((void *)s_tuya_rcs.code);
         }
 
         if (s_tuya_rcs.ca_cert) {
-            tal_free(s_tuya_rcs.ca_cert);
+            tal_free((void *)s_tuya_rcs.ca_cert);
         }
     }
-    memcpy(&s_tuya_rcs, rcs, sizeof(register_center_t));
+    memcpy((void *)&s_tuya_rcs, rcs, sizeof(register_center_t));
 }
 
 /**
@@ -355,7 +355,7 @@ EXIT:
 
     if (rt != OPRT_OK) {
         PR_DEBUG("use default rcs [%d]", rt);
-        memcpy(&s_tuya_rcs, &s_def_rcs, sizeof(register_center_t));
+        memcpy((void *)&s_tuya_rcs, &s_def_rcs, sizeof(register_center_t));
     }
     // tal_event_subscribe(EVENT_RESET, "rcs", __rcs_reset_cb, 0);
 
@@ -388,11 +388,11 @@ OPERATE_RET tuya_register_center_save(RCS_E source, cJSON *rcs)
     register_center_t tmp_rcs = {0};
     rt = __rcs_restore(data, &tmp_rcs);
     if (OPRT_OK != rt) {
-        tal_free(data);
+        tal_free((void *)data);
         return OPRT_CJSON_GET_ERR;
     }
 
-    tal_free(data);
+    tal_free((void *)data);
 
     data = NULL;
     rt = __rcs_serialize(&tmp_rcs, (uint8_t **)&data, &length);
@@ -410,7 +410,7 @@ OPERATE_RET tuya_register_center_save(RCS_E source, cJSON *rcs)
     if (OPRT_OK == rt) {
         __rcs_update(&tmp_rcs);
     }
-    tal_free(data);
+    tal_free((void *)data);
 
     tal_event_publish(EVENT_RSC_UPDATE, NULL);
 
@@ -425,7 +425,7 @@ OPERATE_RET tuya_register_center_save(RCS_E source, cJSON *rcs)
  */
 OPERATE_RET tuya_register_center_get(register_center_t *rcs)
 {
-    memcpy(rcs, &s_tuya_rcs, sizeof(register_center_t));
+    memcpy((void *)rcs, &s_tuya_rcs, sizeof(register_center_t));
     return OPRT_OK;
 }
 

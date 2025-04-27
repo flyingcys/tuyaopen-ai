@@ -61,7 +61,7 @@ int mbedtls_cipher_auth_encrypt_wrapper(const cipher_params_t *input, unsigned c
 EXIT:
     mbedtls_cipher_free(&cipher_ctx);
     if (NULL != enc_tmpbuf) {
-        tal_free(enc_tmpbuf);
+        tal_free((void *)enc_tmpbuf);
         enc_tmpbuf = NULL;
     }
     return (ret);
@@ -130,7 +130,7 @@ int mbedtls_cipher_auth_decrypt_wrapper(const cipher_params_t *input, unsigned c
 EXIT:
     mbedtls_cipher_free(&cipher_ctx);
     if (NULL != dec_tmpbuf) {
-        tal_free(dec_tmpbuf);
+        tal_free((void *)dec_tmpbuf);
         dec_tmpbuf = NULL;
     }
     return (ret);

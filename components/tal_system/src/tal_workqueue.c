@@ -124,14 +124,14 @@ OPERATE_RET tal_workqueue_create(const uint16_t queue_len, THREAD_CFG_T *thread_
 
     op_ret = tuya_queue_create(queue_len, sizeof(WORK_ITEM_T), &workqueue->queue);
     if (OPRT_OK != op_ret) {
-        tal_free(workqueue);
+        tal_free((void *)workqueue);
         return op_ret;
     }
 
     op_ret = tal_semaphore_create_init(&workqueue->sem, 0, queue_len);
     if (OPRT_OK != op_ret) {
         tuya_queue_release(workqueue->queue);
-        tal_free(workqueue);
+        tal_free((void *)workqueue);
         return op_ret;
     }
 
@@ -139,7 +139,7 @@ OPERATE_RET tal_workqueue_create(const uint16_t queue_len, THREAD_CFG_T *thread_
     if (OPRT_OK != op_ret) {
         tal_semaphore_release(workqueue->sem);
         tuya_queue_release(workqueue->queue);
-        tal_free(workqueue);
+        tal_free((void *)workqueue);
     } else {
         *handle = workqueue;
     }
@@ -303,7 +303,7 @@ OPERATE_RET tal_workqueue_release(WORKQUEUE_HANDLE handle)
 
     tuya_queue_release(workqueue->queue);
     tal_semaphore_release(workqueue->sem);
-    tal_free(workqueue);
+    tal_free((void *)workqueue);
 
     return OPRT_OK;
 }
@@ -370,7 +370,7 @@ OPERATE_RET tal_workqueue_init_delayed(WORKQUEUE_HANDLE handle, WORKQUEUE_CB cb,
 
     op_ret = tal_sw_timer_create(__delayed_work_cb, p_delayed_work, &p_delayed_work->timer);
     if (OPRT_OK != op_ret) {
-        tal_free(p_delayed_work);
+        tal_free((void *)p_delayed_work);
         return OPRT_COM_ERROR;
     }
 
@@ -438,7 +438,7 @@ OPERATE_RET tal_workqueue_cancel_delayed(DELAYED_WORK_HANDLE delayed_work)
     tal_sw_timer_delete(p_delayed_work->timer);
     tal_workqueue_cancel(p_delayed_work->handle, p_delayed_work->cb, p_delayed_work->data);
 
-    tal_free(p_delayed_work);
+    tal_free((void *)p_delayed_work);
 
     return OPRT_OK;
 }

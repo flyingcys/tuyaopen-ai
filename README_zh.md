@@ -109,6 +109,9 @@ $ cmake -DCMAKE_TOOLCHAIN_FILE="../../boards/sg200x/toolchain_sg200x_rv64_musl.c
 $ ninja -C build
 ```
 
+- 开启 asan
+cmake -DENABLE_ASAN=ON ..
+
 目前已运行过的平台包括：
 
 - [x] 算能 SG200X RV64： 

@@ -68,6 +68,7 @@ extern "C" {
 // CONFIG_ENABLE_NIMBLE is not set
 // end of tuya cloud
 
+#define AUDIO_DRIVER_NAME "audio_driver"
 
 #ifdef __cplusplus
 }

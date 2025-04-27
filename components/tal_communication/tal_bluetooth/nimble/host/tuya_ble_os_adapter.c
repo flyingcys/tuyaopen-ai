@@ -386,7 +386,7 @@ void *tuya_ble_hs_malloc(uint32_t size)
  */
 void tuya_ble_hs_free(void *pv)
 {
-    tal_free(pv);
+    tal_free((void *)pv);
 }
 
 // [End] End using critical Region

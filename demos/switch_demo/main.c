@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <assert.h>
 
@@ -12,7 +11,7 @@
 #include "netmgr.h"
 
 #include "tuya_iot.h"
-
+#include "tuya_iot_dp.h"
 
 /* Tuya device handle */
 tuya_iot_client_t client;
@@ -31,14 +30,47 @@ extern void example_qrcode_string(const char *string, void (*fputs)(const char *
  */
 void user_upgrade_notify_on(tuya_iot_client_t *client, cJSON *upgrade)
 {
+    if (upgrade == NULL) {
+        PR_ERR("upgrade parameter is NULL");
+        return;
+    }
+    
     PR_INFO("----- Upgrade information -----");
-    PR_INFO("OTA Channel: %d", cJSON_GetObjectItem(upgrade, "type")->valueint);
-    PR_INFO("Version: %s", cJSON_GetObjectItem(upgrade, "version")->valuestring);
-    PR_INFO("Size: %s", cJSON_GetObjectItem(upgrade, "size")->valuestring);
-    PR_INFO("MD5: %s", cJSON_GetObjectItem(upgrade, "md5")->valuestring);
-    PR_INFO("HMAC: %s", cJSON_GetObjectItem(upgrade, "hmac")->valuestring);
-    PR_INFO("URL: %s", cJSON_GetObjectItem(upgrade, "url")->valuestring);
-    PR_INFO("HTTPS URL: %s", cJSON_GetObjectItem(upgrade, "httpsUrl")->valuestring);
+    
+    cJSON *type_item = cJSON_GetObjectItem(upgrade, "type");
+    if (type_item && cJSON_IsNumber(type_item)) {
+        PR_INFO("OTA Channel: %d", type_item->valueint);
+    }
+    
+    cJSON *version_item = cJSON_GetObjectItem(upgrade, "version");
+    if (version_item && cJSON_IsString(version_item) && version_item->valuestring) {
+        PR_INFO("Version: %s", version_item->valuestring);
+    }
+    
+    cJSON *size_item = cJSON_GetObjectItem(upgrade, "size");
+    if (size_item && cJSON_IsString(size_item) && size_item->valuestring) {
+        PR_INFO("Size: %s", size_item->valuestring);
+    }
+    
+    cJSON *md5_item = cJSON_GetObjectItem(upgrade, "md5");
+    if (md5_item && cJSON_IsString(md5_item) && md5_item->valuestring) {
+        PR_INFO("MD5: %s", md5_item->valuestring);
+    }
+    
+    cJSON *hmac_item = cJSON_GetObjectItem(upgrade, "hmac");
+    if (hmac_item && cJSON_IsString(hmac_item) && hmac_item->valuestring) {
+        PR_INFO("HMAC: %s", hmac_item->valuestring);
+    }
+    
+    cJSON *url_item = cJSON_GetObjectItem(upgrade, "url");
+    if (url_item && cJSON_IsString(url_item) && url_item->valuestring) {
+        PR_INFO("URL: %s", url_item->valuestring);
+    }
+    
+    cJSON *https_url_item = cJSON_GetObjectItem(upgrade, "httpsUrl");
+    if (https_url_item && cJSON_IsString(https_url_item) && https_url_item->valuestring) {
+        PR_INFO("HTTPS URL: %s", https_url_item->valuestring);
+    }
 }
 
 /**
@@ -71,7 +103,11 @@ void user_event_handler_on(tuya_iot_client_t *client, tuya_event_msg_t *event)
     /* Print the QRCode for Tuya APP bind */
     case TUYA_EVENT_DIRECT_MQTT_CONNECTED: {
         char buffer[255];
-        sprintf(buffer, "https://smartapp.tuya.com/s/p?p=%s&uuid=%s&v=2.0", TUYA_PRODUCT_ID, TUYA_OPENSDK_UUID);
+        int ret = snprintf(buffer, sizeof(buffer), "https://smartapp.tuya.com/s/p?p=%s&uuid=%s&v=2.0", TUYA_PRODUCT_ID, TUYA_OPENSDK_UUID);
+        if (ret < 0 || ret >= sizeof(buffer)) {
+            PR_ERR("Failed to format QR code URL, string too long");
+            break;
+        }
         example_qrcode_string(buffer, user_log_output_cb, 0);
     } break;
 

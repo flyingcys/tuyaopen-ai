@@ -45,7 +45,7 @@ static http_client_status_t core_http_request_send(const TransportInterface_t *p
 
     if (httpStatus != HTTPSuccess) {
         log_error("HTTP header error:%d", httpStatus);
-        tal_free(requestHeaders.pBuffer);
+        tal_free((void *)requestHeaders.pBuffer);
         return HTTP_CLIENT_SERIALIZE_FAULT;
     }
 
@@ -57,7 +57,7 @@ static http_client_status_t core_http_request_send(const TransportInterface_t *p
                                     response, 0);
 
     /* Release headers buffer */
-    tal_free(requestHeaders.pBuffer);
+    tal_free((void *)requestHeaders.pBuffer);
 
     if (httpStatus != HTTPSuccess) {
         log_error("Failed to send HTTP %.*s request to %.*s%.*s: Error=%s.", (int32_t)requestInfo->methodLen,
@@ -173,11 +173,11 @@ int http_client_free(http_client_response_t *response)
     }
 
     if (response->buffer) {
-        tal_free(response->buffer);
+        tal_free((void *)response->buffer);
     }
 
     if (response->body) {
-        tal_free(response->body);
+        tal_free((void *)response->body);
     }
 
     return OPRT_OK;

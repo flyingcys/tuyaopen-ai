@@ -103,7 +103,7 @@ int dp_rept_json_append(dp_schema_t *schema, char *data, char *time, char *type,
     return OPRT_OK;
 
 __err_exit:
-    tal_free(tmp);
+    tal_free((void *)tmp);
     PR_ERR("sprintf %d", offset);
     return OPRT_COM_ERROR;
 }
@@ -258,7 +258,7 @@ static OPERATE_RET dp_obj_equal_resp(dp_schema_t *schema, uint8_t *dpid, uint8_t
 
     // char *out = NULL;
     // op_ret = make_dpstr(schema, tmp, NULL, "query", 0, 0, &out);
-    // tal_free(tmp);
+    // tal_free((void *)tmp);
     // if (OPRT_OK != op_ret) {
     //     PR_ERR("add_devid_time_to_dpstr err:%d", op_ret);
     //     return op_ret;
@@ -268,7 +268,7 @@ static OPERATE_RET dp_obj_equal_resp(dp_schema_t *schema, uint8_t *dpid, uint8_t
     //! FIXME:
     //     SMARTPOINTER_T *rfc_da = NULL;
     //     op_ret = __sf_mk_rfc_msg_data((uint8_t *)out, strlen(out),
-    //     &rfc_da);//root ref tal_free(out); if (OPRT_OK != op_ret) {
+    //     &rfc_da);//root ref tal_free((void *)out); if (OPRT_OK != op_ret) {
     //         PR_ERR("mk_rfc_msg_data err:%d", op_ret);
     //         return op_ret;
     //     }
@@ -380,7 +380,7 @@ int dp_data_recv_parse(dp_recv_msg_t *msg, dp_recv_cb_t dp_recv_cb)
                 dp_recv_cb(T_RAW, dpraw, msg->user_data);
                 tal_mutex_lock(schema->mutex);
             }
-            tal_free(dpraw);
+            tal_free((void *)dpraw);
             continue;
         }
 
@@ -463,7 +463,7 @@ int dp_data_recv_parse(dp_recv_msg_t *msg, dp_recv_cb_t dp_recv_cb)
 
 __err_exit:
     if (dpobj) {
-        tal_free(dpobj);
+        tal_free((void *)dpobj);
     }
 
     return op_ret;
@@ -562,7 +562,7 @@ static bool dp_rept_update(dp_rept_type_t rept_type, dp_obj_t *dp, dp_node_t *dp
                 if ((NULL == dpnode->prop.prop_str.value) ||
                     (dpnode->prop.prop_str.cur_len < strlen(dp->value.dp_str))) {
                     if (NULL != dpnode->prop.prop_str.value) {
-                        tal_free(dpnode->prop.prop_str.value);
+                        tal_free((void *)dpnode->prop.prop_str.value);
                         dpnode->prop.prop_str.value = NULL;
                     }
                     dpnode->prop.prop_str.cur_len = strlen(dp->value.dp_str);
@@ -914,7 +914,7 @@ int dp_rept_json_output(dp_schema_t *schema, dp_rept_in_t *dpin, dp_rept_valid_t
             if (tmp_data) {
                 offset += sprintf(dpstr + offset, "\"%d\":%s,", dp->id, tmp_data);
             }
-            tal_free(tmp_data);
+            tal_free((void *)tmp_data);
             cJSON_Delete(temp_str);
             break;
         }
@@ -947,9 +947,9 @@ int dp_rept_json_output(dp_schema_t *schema, dp_rept_in_t *dpin, dp_rept_valid_t
     return OPRT_OK;
 
 __err_exit:
-    tal_free(dpstr);
+    tal_free((void *)dpstr);
     if (is_need_time) {
-        tal_free(dptimestr);
+        tal_free((void *)dptimestr);
     }
 
     return op_ret;
@@ -985,7 +985,7 @@ __err_exit:
 
 // __err_exit:
 //     if (dpvaild) {
-//         tal_free(dpvaild);
+//         tal_free((void *)dpvaild);
 //     }
 
 //     return op_ret;
@@ -1122,7 +1122,7 @@ int dp_obj_dump_stat_local_json(char *devid, dp_rept_valid_t **outdpvalid, char 
     char *jsonstr = cJSON_PrintUnformatted(cjson);
     cJSON_Delete(cjson);
     if (NULL == jsonstr) {
-        tal_free(dpvaild);
+        tal_free((void *)dpvaild);
         PR_ERR("Json err");
         return OPRT_CR_CJSON_ERR;
     }
@@ -1130,20 +1130,20 @@ int dp_obj_dump_stat_local_json(char *devid, dp_rept_valid_t **outdpvalid, char 
     if (flags & DP_APPEND_HEADER_FLAG) {
         char *out = NULL;
         dp_rept_json_append(schema, jsonstr, NULL, NULL, 0, &out);
-        tal_free(jsonstr);
+        tal_free((void *)jsonstr);
         jsonstr = out;
     }
 
     if (outjson) {
         *outjson = jsonstr;
     } else {
-        tal_free(jsonstr);
+        tal_free((void *)jsonstr);
     }
 
     if (outdpvalid) {
         *outdpvalid = dpvaild;
     } else {
-        tal_free(dpvaild);
+        tal_free((void *)dpvaild);
     }
 
     return OPRT_OK;
@@ -1279,7 +1279,7 @@ static OPERATE_RET dp_node_parse(char *schema_json, dp_node_pos_t *nodepos, uint
         prop = &(dpnode[i].prop);
 
         memset(pBuf, 0, MAX_ITEM_LEN);
-        memcpy(pBuf, schema_json + nodepos[i].start, nodepos[i].end - nodepos[i].start + 1);
+        memcpy((void *)pBuf, schema_json + nodepos[i].start, nodepos[i].end - nodepos[i].start + 1);
         cjson = cJSON_Parse(pBuf);
         if (NULL == cjson) {
             PR_ERR("cjson NULL:%s", pBuf);
@@ -1488,13 +1488,13 @@ static OPERATE_RET dp_node_parse(char *schema_json, dp_node_pos_t *nodepos, uint
         cjson = NULL;
     }
 
-    tal_free(pBuf);
+    tal_free((void *)pBuf);
 
     return OPRT_OK;
 
 __exit:
     if (pBuf) {
-        tal_free(pBuf);
+        tal_free((void *)pBuf);
     }
 
     if (cjson) {
@@ -1534,12 +1534,12 @@ int dp_schema_create(char *devid, char *schema_json, dp_schema_t **dp_schema_out
     nodenum = dp_node_pos_decode(schema_json, nodepos, 255);
     if (0 == nodenum || nodenum >= 255) {
         PR_ERR("dp num parse err:%d", nodenum);
-        tal_free(nodepos);
+        tal_free((void *)nodepos);
         return OPRT_SVC_DEVOS_DEV_DP_CNT_INVALID;
     }
     dp_schema_t *dp_schema = (dp_schema_t *)tal_malloc(sizeof(dp_schema_t) + nodenum * sizeof(dp_node_t));
     if (NULL == dp_schema) {
-        tal_free(nodepos);
+        tal_free((void *)nodepos);
         PR_ERR("malloc fail:%d", nodenum);
         return OPRT_MALLOC_FAILED;
     }
@@ -1571,14 +1571,14 @@ int dp_schema_create(char *devid, char *schema_json, dp_schema_t **dp_schema_out
         s_dsmgr.schema_num++;
     }
     PR_DEBUG("create dp_schema Success ");
-    tal_free(nodepos);
+    tal_free((void *)nodepos);
 
     return OPRT_OK;
 
 __exit:
     tal_mutex_release(dp_schema->mutex);
-    tal_free(dp_schema);
-    tal_free(nodepos);
+    tal_free((void *)dp_schema);
+    tal_free((void *)nodepos);
     return op_ret;
 }
 
@@ -1605,7 +1605,7 @@ int dp_schema_delete(char *devid)
 
         if (0 == strcmp(devid, dsmgr->schema_list[i]->devid)) {
             tal_mutex_release(dsmgr->schema_list[i]->mutex);
-            tal_free(dsmgr->schema_list[i]);
+            tal_free((void *)dsmgr->schema_list[i]);
             dsmgr->schema_list[i] = NULL;
             dsmgr->schema_num--;
             return OPRT_OK;

@@ -63,7 +63,7 @@ OPERATE_RET netconn_wired_open(void *config)
     netmgr_conn_wired_t *netmgr_wired = &s_netmgr_wired;
 
     // open wired connection, default disconnect
-    // memcpy(&netmgr_wired->config, config, sizeof(netmgr_wired->config));
+    // memcpy((void *)&netmgr_wired->config, config, sizeof(netmgr_wired->config));
     netmgr_wired->base.status = NETMGR_LINK_DOWN;
     TUYA_CALL_ERR_RETURN(tal_wired_set_status_cb(__netconn_wired_event));
 

@@ -34,6 +34,10 @@ typedef unsigned long TIME_MS;
 typedef unsigned long TIME_S;
 typedef unsigned int TIME_T;
 
+#ifndef SIZEOF
+#define SIZEOF sizeof
+#endif
+
 #ifndef FALSE
 #define FALSE 0
 #endif

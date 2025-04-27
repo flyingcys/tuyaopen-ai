@@ -50,7 +50,7 @@ static void core_mqtt_library_callback(struct MQTTContext *pContext, struct MQTT
                                        .qos = pDeserializedInfo->pPublishInfo->qos,
                                    },
                                    context->config.userdata);
-        tal_free(topic);
+        tal_free((void *)topic);
 
     } else {
         switch (pPacketInfo->type) {
@@ -88,7 +88,7 @@ void *mqtt_client_new(void)
 
 void mqtt_client_free(void *client)
 {
-    tal_free(client);
+    tal_free((void *)client);
 }
 
 static int network_write(NetworkContext_t *pNetwork, const unsigned char *pMsg, size_t len)

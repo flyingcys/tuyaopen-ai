@@ -176,7 +176,7 @@ OPERATE_RET _event_node_dispatch(EVENT_NODE_T *event, void *data)
         // one-time event should be removed after dispatch
         if (entry->type == SUBSCRIBE_TYPE_ONETIME) {
             tuya_list_del(&entry->node);
-            tal_free(entry);
+            tal_free((void *)entry);
             entry = NULL;
         }
     }
@@ -239,7 +239,7 @@ OPERATE_RET _event_node_del_free_subscribe(SUBSCRIBE_NODE_T *subscribe)
 
     // dont forget remove and free
     tuya_list_del(&new_entry->node);
-    tal_free(new_entry);
+    tal_free((void *)new_entry);
     new_entry = NULL;
 
     return rt;
@@ -257,7 +257,7 @@ OPERATE_RET _event_node_del_subscribe(EVENT_NODE_T *event, SUBSCRIBE_NODE_T *sub
 
     // dont forget remove and free
     tuya_list_del(&new_entry->node);
-    tal_free(new_entry);
+    tal_free((void *)new_entry);
     new_entry = NULL;
     return rt;
 }

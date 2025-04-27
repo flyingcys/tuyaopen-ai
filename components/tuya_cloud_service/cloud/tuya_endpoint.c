@@ -74,7 +74,7 @@ static int tuya_region_regist_key_read(char *region, char *regist_key)
         PR_ERR("tal_kv_get region fail:0x%02x", ret);
         return OPRT_KVS_RD_FAIL;
     }
-    memcpy(region, value, MAX_LENGTH_REGION);
+    memcpy((void *)region, value, MAX_LENGTH_REGION);
     region[MAX_LENGTH_REGION] = 0;
     tal_kv_free(value);
 
@@ -83,7 +83,7 @@ static int tuya_region_regist_key_read(char *region, char *regist_key)
         PR_ERR("tal_kv_get regist_key fail:0x%02x", ret);
         return OPRT_KVS_RD_FAIL;
     }
-    memcpy(regist_key, value, MAX_LENGTH_REGIST);
+    memcpy((void *)regist_key, value, MAX_LENGTH_REGIST);
     regist_key[MAX_LENGTH_REGIST] = 0;
     tal_kv_free(value);
 
@@ -297,7 +297,7 @@ int tuya_endpoint_update(void)
      * the allocated certificate memory needs to be released. */
     if (endpoint_mgr.endpoint.cert != NULL) {
         PR_TRACE("Free endpoint already exist cert.");
-        tal_free(endpoint_mgr.endpoint.cert);
+        tal_free((void *)endpoint_mgr.endpoint.cert);
     }
     /* Try to get the iot-dns domain data */
     ret = iotdns_cloud_endpoint_get(endpoint_mgr.region, endpoint_mgr.regist_key, &endpoint_mgr.endpoint);
@@ -323,7 +323,7 @@ int tuya_endpoint_update_auto_region(void)
      * the allocated certificate memory needs to be released. */
     if (endpoint_mgr.endpoint.cert != NULL) {
         PR_TRACE("Free endpoint already exist cert.");
-        tal_free(endpoint_mgr.endpoint.cert);
+        tal_free((void *)endpoint_mgr.endpoint.cert);
     }
     /* Try to get the iot-dns domain data */
     ret = iotdns_cloud_endpoint_get(NULL, endpoint_mgr.regist_key, &endpoint_mgr.endpoint);

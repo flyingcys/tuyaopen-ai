@@ -50,7 +50,7 @@ ble_frame_trsmitr_t *ble_frame_trsmitr_create(void)
     trsmitr->subpkg = (uint8_t *)tal_malloc(ble_frame_packet_len_get());
     if (trsmitr->subpkg == NULL) {
         PR_ERR("malloc err:%d", ble_frame_packet_len_get());
-        tal_free(trsmitr);
+        tal_free((void *)trsmitr);
         return NULL;
     }
     memset(trsmitr->subpkg, 0, ble_frame_packet_len_get());
@@ -68,8 +68,8 @@ ble_frame_trsmitr_t *ble_frame_trsmitr_create(void)
  */
 void ble_frame_trsmitr_delete(ble_frame_trsmitr_t *trsmitr)
 {
-    tal_free(trsmitr->subpkg);
-    tal_free(trsmitr);
+    tal_free((void *)trsmitr->subpkg);
+    tal_free((void *)trsmitr);
 }
 
 /**
@@ -213,7 +213,7 @@ int ble_frame_trsmitr_send_pkg_encode(ble_frame_trsmitr_t *trsmitr, unsigned cha
 
     PR_TRACE("pkg max len:%d, sunpkg_offset:%d, send_data:%d", ble_frame_packet_len_get(), sunpkg_offset, send_data);
 
-    memcpy(&(trsmitr->subpkg[sunpkg_offset]), buf + trsmitr->pkg_trsmitr_cnt, send_data);
+    memcpy((void *)&(trsmitr->subpkg[sunpkg_offset]), buf + trsmitr->pkg_trsmitr_cnt, send_data);
     trsmitr->subpkg_len = sunpkg_offset + send_data;
 
     trsmitr->pkg_trsmitr_cnt += send_data;
@@ -342,7 +342,7 @@ int ble_frame_trsmitr_recv_pkg_decode(ble_frame_trsmitr_t *trsmitr, unsigned cha
     }
 
     // decode data cp to transmitter subpackage buf
-    memcpy(trsmitr->subpkg, &raw_data[sunpkg_offset], recv_data);
+    memcpy((void *)trsmitr->subpkg, &raw_data[sunpkg_offset], recv_data);
     trsmitr->subpkg_len = recv_data;
     trsmitr->pkg_trsmitr_cnt += recv_data;
 

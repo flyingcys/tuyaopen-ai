@@ -277,7 +277,7 @@ OPERATE_RET tal_sw_timer_delete(TIMER_ID timer_id)
     }
     tal_mutex_unlock(s_timer_mgr.mutex);
     tal_semaphore_post(s_timer_mgr.sem);
-    tal_free(timer);
+    tal_free((void *)timer);
 
     return OPRT_OK;
 }

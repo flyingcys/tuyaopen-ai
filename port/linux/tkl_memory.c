@@ -15,7 +15,7 @@
 #include "tkl_memory.h"
 #include "tuya_mem_heap.h"
 
-#define MAX_HEAP_SIZE (512*1024)
+#define MAX_HEAP_SIZE (512*10*1024)
 
 static pthread_mutex_t s_heap_mutex = PTHREAD_MUTEX_INITIALIZER;
 static HEAP_HANDLE s_heap_handle = NULL;
@@ -53,11 +53,14 @@ static void __heap_init(void)
 */
 void* tkl_system_malloc(const SIZE_T size)
 {
-    if(!s_heap_handle) {
-        __heap_init();
-    }
+    // if(!s_heap_handle) {
+    //     __heap_init();
+    // }
 
-    return tuya_mem_heap_malloc(s_heap_handle, size);
+    // return tuya_mem_heap_malloc(s_heap_handle, size);
+    void * p = malloc(size);
+    // printf("=================p :%p\n", p);
+    return p;
 }
 
 /**
@@ -71,9 +74,11 @@ void* tkl_system_malloc(const SIZE_T size)
 */
 void tkl_system_free(void* ptr)
 {
-    if(ptr) {
-        tuya_mem_heap_free(s_heap_handle, ptr);
-    }
+    // if(ptr) {
+    //     tuya_mem_heap_free(s_heap_handle, ptr);
+    // }
+
+    free(ptr);
 }
 
 /**
@@ -84,7 +89,9 @@ void tkl_system_free(void* ptr)
  */
 void *tkl_system_calloc(size_t nitems, size_t size)
 {
-    return tuya_mem_heap_calloc(s_heap_handle, nitems * size);
+    // return tuya_mem_heap_calloc(s_heap_handle, nitems * size);
+
+    return calloc(nitems, size);
 }
 
 /**
@@ -95,7 +102,9 @@ void *tkl_system_calloc(size_t nitems, size_t size)
  */
 void *tkl_system_realloc(void* ptr, size_t size)
 {
-    return tuya_mem_heap_realloc(s_heap_handle, ptr, size);
+    // return tuya_mem_heap_realloc(s_heap_handle, ptr, size);
+
+    return realloc(ptr, size);
 }
 
 /**
@@ -109,7 +118,9 @@ void *tkl_system_realloc(void* ptr, size_t size)
 */
 int tkl_system_get_free_heap_size(void)
 {
-    return tuya_mem_heap_available(s_heap_handle);
+    // return tuya_mem_heap_available(s_heap_handle);
+
+    return MAX_HEAP_SIZE;
 }
 
 /**

@@ -915,7 +915,7 @@ static int httpParserOnBodyCallback( http_parser * pHttpParser,
                         ( unsigned long ) HTTP_MAX_RESPONSE_CHUNK_SIZE_BYTES ) );
             return HTTP_PARSER_STOP_PARSING;
         }
-        memcpy( pResponse->pBody + pResponse->bodyLen, pLoc, length);
+        memcpy((void *)pResponse->pBody + pResponse->bodyLen, pLoc, length);
         pResponse->bodyLen += length;
         return HTTP_PARSER_CONTINUE_PARSING;
     }
@@ -1389,7 +1389,7 @@ static HTTPStatus_t addHeader( HTTPRequestHeaders_t * pRequestHeaders,
             pBufferCur += fieldLen;
 
             /* Copy the field separator, ": ", into the buffer. */
-            ( void ) memcpy( pBufferCur,
+            ( void ) memcpy( (void *)pBufferCur,
                               HTTP_HEADER_FIELD_SEPARATOR,
                               HTTP_HEADER_FIELD_SEPARATOR_LEN );
 
@@ -1407,7 +1407,7 @@ static HTTPStatus_t addHeader( HTTPRequestHeaders_t * pRequestHeaders,
             pBufferCur += valueLen;
 
             /* Copy the header end indicator, "\r\n\r\n" into the buffer. */
-            ( void ) memcpy( pBufferCur,
+            ( void ) memcpy( (void *)pBufferCur,
                               HTTP_HEADER_END_INDICATOR,
                               HTTP_HEADER_END_INDICATOR_LEN );
 
@@ -1448,7 +1448,7 @@ static HTTPStatus_t addRangeHeader( HTTPRequestHeaders_t * pRequestHeaders,
     /* Generate the value data for the Range Request header.*/
 
     /* Write the range value prefix in the buffer. */
-    ( void ) memcpy( rangeValueBuffer,
+    ( void ) memcpy( (void *)rangeValueBuffer,
                       HTTP_RANGE_REQUEST_HEADER_VALUE_PREFIX,
                       HTTP_RANGE_REQUEST_HEADER_VALUE_PREFIX_LEN );
     rangeValueLength += HTTP_RANGE_REQUEST_HEADER_VALUE_PREFIX_LEN;
@@ -1537,7 +1537,7 @@ static HTTPStatus_t writeRequestLine( HTTPRequestHeaders_t * pRequestHeaders,
         /* Use "/" as default value if <PATH> is NULL. */
         if( ( pPath == NULL ) || ( pathLen == 0U ) )
         {
-            ( void ) memcpy( pBufferCur,
+            ( void ) memcpy( (void *)pBufferCur,
                               HTTP_EMPTY_PATH,
                               HTTP_EMPTY_PATH_LEN );
             pBufferCur += HTTP_EMPTY_PATH_LEN;
@@ -1551,12 +1551,12 @@ static HTTPStatus_t writeRequestLine( HTTPRequestHeaders_t * pRequestHeaders,
         *pBufferCur = SPACE_CHARACTER;
         pBufferCur += SPACE_CHARACTER_LEN;
 
-        ( void ) memcpy( pBufferCur,
+        ( void ) memcpy( (void *)pBufferCur,
                           HTTP_PROTOCOL_VERSION,
                           HTTP_PROTOCOL_VERSION_LEN );
         pBufferCur += HTTP_PROTOCOL_VERSION_LEN;
 
-        ( void ) memcpy( pBufferCur,
+        ( void ) memcpy( (void *)pBufferCur,
                           HTTP_HEADER_LINE_SEPARATOR,
                           HTTP_HEADER_LINE_SEPARATOR_LEN );
         pRequestHeaders->headersLen = toAddLen;
@@ -2770,7 +2770,9 @@ HTTPStatus_t HTTPClient_Request( const TransportInterface_t * pTransport,
                     returnStatus = HTTPInsufficientMemory;
                     goto __exit;
                 }
-                memcpy(pResponse->pBody, pResponse->pBuffer + headerLen, bodyLen);
+                memcpy((void *)pResponse->pBody, pResponse->pBuffer + headerLen, bodyLen);
+                // Add null terminator to ensure the body can be safely used as a string
+                ((uint8_t *)pResponse->pBody)[pResponse->bodyLen] = '\0';
                 return OPRT_OK;
             }
             if (parsingContext.httpParser.flags & F_CHUNKED) {
@@ -2792,12 +2794,14 @@ HTTPStatus_t HTTPClient_Request( const TransportInterface_t * pTransport,
             //! Remaining length of the body in the header
             if (bodyLen) {
                 if (parsingContext.httpParser.flags & F_CHUNKED) {
-                    memcpy(chunkBuffer, pResponse->pBuffer + headerLen, bodyLen);
+                    memcpy((void *)chunkBuffer, pResponse->pBuffer + headerLen, bodyLen);
                     chunkLen = bodyLen;
                     parsingContext.recvState = HTTP_PARSE_CHUNK;
                 } else {
-                    memcpy(pResponse->pBody, pResponse->pBuffer + headerLen, bodyLen);
+                    memcpy((void *)pResponse->pBody, pResponse->pBuffer + headerLen, bodyLen);
                     if (bodyLen == pResponse->contentLength) {
+                        // Add null terminator to ensure the body can be safely used as a string
+                        ((uint8_t *)pResponse->pBody)[bodyLen] = '\0';
                         parsingContext.recvState = HTTP_PARSE_BODY;
                     }
                 }
@@ -2838,7 +2842,7 @@ HTTPStatus_t HTTPClient_Request( const TransportInterface_t * pTransport,
 
         case HTTP_RECV_BODY:
             currentReceived = pTransport->recv( pTransport->pNetworkContext,
-                                                pResponse->pBody + bodyLen,
+                                                (void *)pResponse->pBody + bodyLen,
                                                 pResponse->contentLength - bodyLen);
             if (currentReceived <= 0) {
                 LogError( ( "Failed to receive HTTP data: Transport recv() "
@@ -2848,6 +2852,8 @@ HTTPStatus_t HTTPClient_Request( const TransportInterface_t * pTransport,
             }
             bodyLen += currentReceived;
             if (pResponse->contentLength == bodyLen) {
+                // Add null terminator to ensure the body can be safely used as a string
+                ((uint8_t *)pResponse->pBody)[bodyLen] = '\0';
                 parsingContext.recvState = HTTP_PARSE_BODY;
             }
             break;
@@ -2862,28 +2868,30 @@ HTTPStatus_t HTTPClient_Request( const TransportInterface_t * pTransport,
                 goto __exit;
             }
             if (bytesParsed == pResponse->contentLength) {  
+                // Add null terminator to ensure the body can be safely used as a string
+                ((uint8_t *)pResponse->pBody)[pResponse->bodyLen] = '\0';
                 parsingContext.recvState = HTTP_RECV_DONE;
             }
         }
     }
 
     if (chunkBuffer) {
-        HTTP_FREE(chunkBuffer);
+        HTTP_FREE((void *)chunkBuffer);
     }
 
     return returnStatus;
 
 __exit:
     if (chunkBuffer) {
-        HTTP_FREE(chunkBuffer);
+        HTTP_FREE((void *)chunkBuffer);
     }
 
     if (pResponse->pBuffer) {
-        HTTP_FREE(pResponse->pBuffer);
+        HTTP_FREE((void *)pResponse->pBuffer);
     }
 
     if (pResponse->pBody) {
-        HTTP_FREE(pResponse->pBody);
+        HTTP_FREE((void *)pResponse->pBody);
     }
 
     return returnStatus;
@@ -2899,9 +2907,9 @@ int32_t HTTPClient_Recv(const TransportInterface_t *pTransport,
     int32_t currentReceived = 0;
 
     if (pResponse->pBody && pResponse->bodyLen) {
-        memcpy(data, pResponse->pBody, pResponse->bodyLen);
+        memcpy((void *)data, pResponse->pBody, pResponse->bodyLen);
         currentReceived = pResponse->bodyLen;
-        HTTP_FREE(pResponse->pBody);
+        HTTP_FREE((void *)pResponse->pBody);
         pResponse->pBody = NULL;
         pResponse->bodyLen = 0;
         return currentReceived;

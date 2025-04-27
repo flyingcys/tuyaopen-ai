@@ -61,7 +61,7 @@ LIST_HEAD name = LIST_HEAD_INIT(name)
     while(!tuya_list_empty(&(p)->list_name)) {\
     posnode = tuya_list_entry((&(p)->list_name)->next, type, list_name);\
     tuya_list_del((&(p)->list_name)->next);\
-    tal_free(posnode);\
+    tal_free((void *)posnode);\
     }\
 }
 
@@ -86,7 +86,7 @@ LIST_HEAD name = LIST_HEAD_INIT(name)
 #define DeleteNodeAndFree(pDelNode,list_name)\
 {\
     tuya_list_del(&(pDelNode->list_name));\
-    tal_free(pDelNode);\
+    tal_free((void *)pDelNode);\
 }
 
 /**
@@ -104,7 +104,7 @@ LIST_HEAD name = LIST_HEAD_INIT(name)
  */
 #define FreeNode(pDelNode)\
 {\
-    tal_free(pDelNode);\
+    tal_free((void *)pDelNode);\
 }
 
 /**

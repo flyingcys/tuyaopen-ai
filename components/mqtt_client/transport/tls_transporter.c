@@ -305,7 +305,7 @@ OPERATE_RET tuya_tls_transporter_destroy(tuya_transporter_t transporter)
 
     tuya_tcp_transporter_destroy(t->tcp_transporter);
     if (t) {
-        tal_free(t);
+        tal_free((void *)t);
     }
 
     return OPRT_OK;

@@ -64,6 +64,39 @@ static int iot_dispatch_event(tuya_iot_client_t *client)
     return OPRT_OK;
 }
 
+/**
+ * @brief Safe JSON parsing function that ensures null termination
+ * 
+ * @param data Input data buffer
+ * @param len Length of input data
+ * @return cJSON* Parsed JSON object or NULL on error
+ */
+static cJSON *safe_cjson_parse(const uint8_t *data, size_t len)
+{
+    if (!data || len == 0) {
+        return NULL;
+    }
+    
+    // Check if already null terminated
+    if (data[len - 1] == '\0') {
+        return cJSON_Parse((const char *)data);
+    }
+    
+    // Create null-terminated copy
+    char *json_str = tal_malloc(len + 1);
+    if (!json_str) {
+        return NULL;
+    }
+    
+    memcpy(json_str, data, len);
+    json_str[len] = '\0';
+    
+    cJSON *result = cJSON_Parse(json_str);
+    tal_free(json_str);
+    
+    return result;
+}
+
 /* -------------------------------------------------------------------------- */
 /*                            Activate data process                           */
 /* -------------------------------------------------------------------------- */
@@ -73,6 +106,7 @@ static int activate_json_string_parse(const char *str, tuya_activated_data_t *ou
     int result = OPRT_OK;
     cJSON *root = NULL;
 
+    // Use safe parsing since str is from storage and should be null-terminated
     root = cJSON_Parse(str);
     if (NULL == root) {
         result = OPRT_CJSON_PARSE_ERR;
@@ -85,14 +119,43 @@ static int activate_json_string_parse(const char *str, tuya_activated_data_t *ou
         goto __exit;
     }
 
-    strcpy(out->devid, cJSON_GetObjectItem(root, "devId")->valuestring);
-    strcpy(out->seckey, cJSON_GetObjectItem(root, "secKey")->valuestring);
-    strcpy(out->localkey, cJSON_GetObjectItem(root, "localKey")->valuestring);
-    strcpy(out->schemaId, cJSON_GetObjectItem(root, "schemaId")->valuestring);
+    // Safe string copy with length validation
+    const char *devid_str = cJSON_GetObjectItem(root, "devId")->valuestring;
+    const char *seckey_str = cJSON_GetObjectItem(root, "secKey")->valuestring;
+    const char *localkey_str = cJSON_GetObjectItem(root, "localKey")->valuestring;
+    const char *schemaId_str = cJSON_GetObjectItem(root, "schemaId")->valuestring;
+
+    if (strlen(devid_str) > MAX_LENGTH_DEVICE_ID || 
+        strlen(seckey_str) > MAX_LENGTH_SECKEY ||
+        strlen(localkey_str) > MAX_LENGTH_LOCALKEY ||
+        strlen(schemaId_str) > MAX_LENGTH_SCHEMA_ID) {
+        PR_ERR("String length exceeds buffer capacity");
+        result = OPRT_INVALID_PARM;
+        goto __exit;
+    }
+
+    strncpy(out->devid, devid_str, MAX_LENGTH_DEVICE_ID);
+    out->devid[MAX_LENGTH_DEVICE_ID] = '\0';
+    
+    strncpy(out->seckey, seckey_str, MAX_LENGTH_SECKEY);
+    out->seckey[MAX_LENGTH_SECKEY] = '\0';
+    
+    strncpy(out->localkey, localkey_str, MAX_LENGTH_LOCALKEY);
+    out->localkey[MAX_LENGTH_LOCALKEY] = '\0';
+    
+    strncpy(out->schemaId, schemaId_str, MAX_LENGTH_SCHEMA_ID);
+    out->schemaId[MAX_LENGTH_SCHEMA_ID] = '\0';
 
     cJSON *stdTimeZone = cJSON_GetObjectItem(root, "stdTimeZone");
     if (stdTimeZone) {
-        strcpy(out->timezone, stdTimeZone->valuestring);
+        const char *timezone_str = stdTimeZone->valuestring;
+        if (strlen(timezone_str) > MAX_LENGTH_TIMEZONE) {
+            PR_ERR("Timezone string length exceeds buffer capacity");
+            result = OPRT_INVALID_PARM;
+            goto __exit;
+        }
+        strncpy(out->timezone, timezone_str, MAX_LENGTH_TIMEZONE);
+        out->timezone[MAX_LENGTH_TIMEZONE] = '\0';
     }
 
 __exit:
@@ -192,7 +255,7 @@ static int activate_response_parse(atop_base_response_t *response)
     const char *activate_data_key = client->config.storage_namespace;
     PR_DEBUG("result len %d :%s", (int)strlen(result_string), result_string);
     ret = tal_kv_set(activate_data_key, (const uint8_t *)result_string, strlen(result_string));
-    tal_free(result_string);
+    tal_free((void *)result_string);
     if (ret != OPRT_OK) {
         PR_ERR("activate data save error:%d", ret);
         return OPRT_KVS_WR_FAIL;
@@ -226,7 +289,7 @@ static int client_activate_process(tuya_iot_client_t *client, const char *token)
 
     snprintf(devid_key, sizeof devid_key, "%s.devid", client->config.storage_namespace);
     if (tal_kv_get(devid_key, (uint8_t **)&devid_vaule, &devid_len) == OPRT_OK) {
-        memcpy(devid_cache, devid_vaule, devid_len);
+        memcpy((void *)devid_cache, devid_vaule, devid_len);
         tal_kv_free((uint8_t *)devid_vaule);
         exist_devid = true;
     }
@@ -724,7 +787,7 @@ static int tuya_iot_token_activate_evt(void *data)
 {
     tuya_iot_client_t *client = tuya_iot_client_get();
 
-    memcpy(client->binding, (tuya_binding_info_t *)data, sizeof(tuya_binding_info_t));
+    memcpy((void *)client->binding, (tuya_binding_info_t *)data, sizeof(tuya_binding_info_t));
 
     client->token_get.result = OPRT_OK;
     tal_semaphore_post(client->token_get.sem);
@@ -820,7 +883,7 @@ int tuya_iot_yield(tuya_iot_client_t *client)
         iot_dispatch_event(client);
 
         if (tuya_iot_token_get_pending(client) != OPRT_OK) {
-            tal_free(client->binding);
+            tal_free((void *)client->binding);
             client->binding = NULL;
             PR_ERR("Get token fail, retry..");
             break;
@@ -888,7 +951,7 @@ int tuya_iot_yield(tuya_iot_client_t *client)
             break;
         }
 
-        tal_free(client->binding);
+        tal_free((void *)client->binding);
         client->binding = NULL;
 
         /* Read and parse activate data */
@@ -1042,23 +1105,33 @@ static int tuya_iot_dp_report_json_common(tuya_iot_client_t *client, const char 
     int ret;
     int printlen = 0;
     char *buffer = NULL;
+    size_t buffer_size = 0;
 
     /* Package JSON format */
     if (time) {
-        buffer = tal_malloc(strlen(dps) + strlen(time) + 64);
+        buffer_size = strlen(dps) + strlen(time) + strlen(client->activate.devid) + 64;
+        buffer = tal_malloc(buffer_size);
         TUYA_CHECK_NULL_RETURN(buffer, OPRT_MALLOC_FAILED);
-        printlen = sprintf(buffer, "{\"devId\":\"%s\",\"dps\":%s,\"t\":%s}", client->activate.devid, dps, time);
+        printlen = snprintf(buffer, buffer_size, "{\"devId\":\"%s\",\"dps\":%s,\"t\":%s}", client->activate.devid, dps, time);
     } else {
-        buffer = tal_malloc(strlen(dps) + 64);
+        buffer_size = strlen(dps) + strlen(client->activate.devid) + 64;
+        buffer = tal_malloc(buffer_size);
         TUYA_CHECK_NULL_RETURN(buffer, OPRT_MALLOC_FAILED);
-        printlen = sprintf(buffer, "{\"devId\":\"%s\",\"dps\":%s}", client->activate.devid, dps);
+        printlen = snprintf(buffer, buffer_size, "{\"devId\":\"%s\",\"dps\":%s}", client->activate.devid, dps);
+    }
+
+    /* Check for truncation */
+    if (printlen >= buffer_size) {
+        PR_ERR("Buffer too small for JSON data");
+        tal_free((void *)buffer);
+        return OPRT_MALLOC_FAILED;
     }
 
     /* Report buffer */
     ret = tuya_mqtt_protocol_data_publish_common(&client->mqctx, PRO_DATA_PUSH, (const uint8_t *)buffer,
                                                  (uint16_t)printlen, (mqtt_publish_notify_cb_t)cb, user_data,
                                                  timeout_ms, async);
-    tal_free(buffer);
+    tal_free((void *)buffer);
     return ret;
 }
 /**
@@ -1213,20 +1286,52 @@ int tuya_iot_version_update_sync(tuya_iot_client_t *client)
     size_t version_len = 0;
     if (client->config.modules) {
         /* extension modules version */
-        version_len += sprintf(version_buffer + version_len, "%s", client->config.modules);
+        int module_len = snprintf(version_buffer + version_len, prealloc_size - version_len, "%s", client->config.modules);
+        if (module_len >= prealloc_size - version_len) {
+            PR_ERR("Module string too long");
+            tal_free((void *)version_buffer);
+            return OPRT_MALLOC_FAILED;
+        }
+        version_len += module_len;
         version_len -= 1; // remove ']'
-        version_len += sprintf(version_buffer + version_len, ",");
+        
+        int comma_len = snprintf(version_buffer + version_len, prealloc_size - version_len, ",");
+        if (comma_len >= prealloc_size - version_len) {
+            PR_ERR("Buffer overflow in comma");
+            tal_free((void *)version_buffer);
+            return OPRT_MALLOC_FAILED;
+        }
+        version_len += comma_len;
     } else {
-        version_len += sprintf(version_buffer + version_len, "[");
+        int bracket_len = snprintf(version_buffer + version_len, prealloc_size - version_len, "[");
+        if (bracket_len >= prealloc_size - version_len) {
+            PR_ERR("Buffer overflow in bracket");
+            tal_free((void *)version_buffer);
+            return OPRT_MALLOC_FAILED;
+        }
+        version_len += bracket_len;
     }
 
     /* Main firmware information */
-    version_len += sprintf(version_buffer + version_len,
-                           "{\\\"otaChannel\\\":%d,\\\"protocolVer\\\":\\\"%s\\\","
-                           "\\\"baselineVer\\\":\\\"%s\\\",\\\"softVer\\\":\\\"%s\\\"}",
-                           0, PV_VERSION, BS_VERSION, client->config.software_ver);
+    int firmware_len = snprintf(version_buffer + version_len, prealloc_size - version_len,
+                       "{\\\"otaChannel\\\":%d,\\\"protocolVer\\\":\\\"%s\\\","
+                       "\\\"baselineVer\\\":\\\"%s\\\",\\\"softVer\\\":\\\"%s\\\"}",
+                       0, PV_VERSION, BS_VERSION, client->config.software_ver);
+    if (firmware_len >= prealloc_size - version_len) {
+        PR_ERR("Firmware info too long");
+        tal_free((void *)version_buffer);
+        return OPRT_MALLOC_FAILED;
+    }
+    version_len += firmware_len;
 
-    version_len += sprintf(version_buffer + version_len, "]");
+    int close_bracket_len = snprintf(version_buffer + version_len, prealloc_size - version_len, "]");
+    if (close_bracket_len >= prealloc_size - version_len) {
+        PR_ERR("Buffer overflow in close bracket");
+        tal_free((void *)version_buffer);
+        return OPRT_MALLOC_FAILED;
+    }
+    version_len += close_bracket_len;
+
     PR_DEBUG("%s", version_buffer);
 
     /* local storage read buffer*/
@@ -1245,7 +1350,7 @@ int tuya_iot_version_update_sync(tuya_iot_client_t *client)
     if (readbuf && memcmp(version_buffer, readbuf, version_len) == 0) {
         PR_DEBUG("The verison unchanged, dont need sync.");
         tal_kv_free((uint8_t *)readbuf);
-        tal_free(version_buffer);
+        tal_free((void *)version_buffer);
         return OPRT_OK;
     }
 
@@ -1253,13 +1358,13 @@ int tuya_iot_version_update_sync(tuya_iot_client_t *client)
     rt = atop_service_version_update_v41(client->activate.devid, client->activate.seckey, (const char *)version_buffer);
     tal_kv_free((uint8_t *)readbuf);
     if (rt != OPRT_OK) {
-        tal_free(version_buffer);
+        tal_free((void *)version_buffer);
         return rt;
     }
 
     /* Save version info */
     rt = tal_kv_set((const char *)version_key, (const uint8_t *)version_buffer, version_len);
-    tal_free(version_buffer);
+    tal_free((void *)version_buffer);
 
     return rt;
 }

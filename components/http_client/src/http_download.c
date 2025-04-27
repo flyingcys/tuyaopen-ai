@@ -105,7 +105,7 @@ static int http_download_filesize_get(http_download_t *ctx)
     ctx->file_size = (size_t)strtoul(pFileSizeStr, NULL, 10);
     PR_INFO("The file is %d bytes long.", (int32_t)ctx->file_size);
     if (ctx->response.pBuffer) {
-        tal_free(ctx->response.pBuffer);
+        tal_free((void *)ctx->response.pBuffer);
     }
     memset(&ctx->response, 0, sizeof(ctx->response));
 __exit:
@@ -152,7 +152,7 @@ static int http_file_download_init(http_download_t *ctx, http_download_config_t 
     http_parser_url_init(&purl);
     TUYA_CALL_ERR_RETURN(http_parser_parse_url(config->url, strlen(config->url), 0, &purl));
 
-    char *p_schema = config->url + purl.field_data[UF_SCHEMA].off;
+    char *p_schema = (char *)config->url + purl.field_data[UF_SCHEMA].off;
     uint16_t schema_len = purl.field_data[UF_SCHEMA].len;
     uint16_t default_port = 0;
     // TUYA_CALL_ERR_RETURN(memcmp("https", p_schema, schema_len));
@@ -162,9 +162,9 @@ static int http_file_download_init(http_download_t *ctx, http_download_config_t 
         default_port = 80;
     }
 
-    char *p_host = config->url + purl.field_data[UF_HOST].off;
+    char *p_host = (char *)config->url + purl.field_data[UF_HOST].off;
     uint16_t host_len = purl.field_data[UF_HOST].len;
-    char *p_path = config->url + purl.field_data[UF_PATH].off;
+    char *p_path = (char *)config->url + purl.field_data[UF_PATH].off;
     uint16_t path_len = strlen(config->url) - purl.field_data[UF_PATH].off;
     // uint16_t path_len  = purl.field_data[UF_PATH].len;
 
@@ -229,8 +229,8 @@ int http_file_download(http_download_config_t *config)
     }
     /* http client TransportInterface */
     ctx->transport.pNetworkContext = (NetworkContext_t *)&network;
-    ctx->transport.send = NetworkTransportSend;
-    ctx->transport.recv = NetworkTransportRecv;
+    ctx->transport.send = (TransportSend_t)NetworkTransportSend;
+    ctx->transport.recv = (TransportRecv_t)NetworkTransportRecv;
 
     ctx->state = DL_STATE_NETWORK_CONNECT;
     TIME_T download_time = tal_time_get_posix();
@@ -338,19 +338,19 @@ int http_file_download(http_download_config_t *config)
 __exit:
     if (ctx) {
         if (ctx->host) {
-            tal_free(ctx->host);
+            tal_free((void *)ctx->host);
         }
         if (ctx->path) {
-            tal_free(ctx->path);
+            tal_free((void *)ctx->path);
         }
         if (ctx->requestHeaders.pBuffer) {
-            tal_free(ctx->requestHeaders.pBuffer);
+            tal_free((void *)ctx->requestHeaders.pBuffer);
         }
         if (ctx->response.pBuffer) {
-            tal_free(ctx->response.pBuffer);
+            tal_free((void *)ctx->response.pBuffer);
         }
 
-        tal_free(ctx);
+        tal_free((void *)ctx);
     }
 
     return rt;

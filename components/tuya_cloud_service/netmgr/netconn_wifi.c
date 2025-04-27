@@ -71,7 +71,7 @@ static void __netconn_wifi_connect_process(void *msg)
         break;
     }
 
-    tal_free(wifi_msg);
+    tal_free((void *)wifi_msg);
 }
 
 OPERATE_RET __netconn_wifi_connect(void)
@@ -228,8 +228,8 @@ OPERATE_RET __netconn_wifi_netcfg_finish(int type, netcfg_info_t *info)
     netmgr_conn_wifi_t *netmgr_wifi = &s_netmgr_wifi;
 
     // save wifi info
-    memcpy(netmgr_wifi->conn.wifi_conn_info.ssid, info->ssid, info->s_len);
-    memcpy(netmgr_wifi->conn.wifi_conn_info.pswd, info->passwd, info->p_len);
+    memcpy((void *)netmgr_wifi->conn.wifi_conn_info.ssid, info->ssid, info->s_len);
+    memcpy((void *)netmgr_wifi->conn.wifi_conn_info.pswd, info->passwd, info->p_len);
     __netconn_wifi_info_set(&netmgr_wifi->conn.wifi_conn_info);
     PR_DEBUG("netcfg finished,  ssid %s, passwd %s, token %s", netmgr_wifi->conn.wifi_conn_info.ssid,
              netmgr_wifi->conn.wifi_conn_info.pswd, info->token);
@@ -238,9 +238,9 @@ OPERATE_RET __netconn_wifi_netcfg_finish(int type, netcfg_info_t *info)
 
     tuya_binding_info_t binding;
     memset(&binding, 0, sizeof(tuya_binding_info_t));
-    memcpy(binding.region, info->token, REGION_LEN);
-    memcpy(binding.token, info->token + REGION_LEN, TOKEN_LEN);
-    memcpy(binding.regist_key, info->token + REGION_LEN + TOKEN_LEN, REGIST_KEY_LEN);
+    memcpy((void *)binding.region, info->token, REGION_LEN);
+    memcpy((void *)binding.token, info->token + REGION_LEN, TOKEN_LEN);
+    memcpy((void *)binding.regist_key, info->token + REGION_LEN + TOKEN_LEN, REGIST_KEY_LEN);
 
     tal_event_unsubscribe(EVENT_LINK_ACTIVATE, "wifi", __wifi_link_activete_cb);
     tal_event_publish(EVENT_LINK_ACTIVATE, &binding);
@@ -381,11 +381,11 @@ OPERATE_RET netconn_wifi_set(netmgr_conn_config_type_e cmd, void *param)
         break;
     case NETCONN_CMD_SSID_PSWD: // set ssid&paswd will cause wifi
                                 // disconnect&connect
-        memcpy(&netmgr_wifi->conn.wifi_conn_info, (netconn_wifi_info_t *)param, sizeof(netconn_wifi_info_t));
+        memcpy((void *)&netmgr_wifi->conn.wifi_conn_info, (netconn_wifi_info_t *)param, sizeof(netconn_wifi_info_t));
         __netconn_wifi_connect();
         break;
     case NETCONN_CMD_COUNTRYCODE:
-        memcpy(netmgr_wifi->ccode, (char *)param, strlen((char *)param));
+        memcpy((void *)netmgr_wifi->ccode, (char *)param, strlen((char *)param));
         TUYA_CALL_ERR_RETURN(tal_wifi_set_country_code(netmgr_wifi->ccode));
         break;
     case NETCONN_CMD_NETCFG: {
@@ -440,17 +440,17 @@ OPERATE_RET netconn_wifi_get(netmgr_conn_config_type_e cmd, void *param)
         break;
     case NETCONN_CMD_SSID_PSWD: // set ssid&paswd will cause wifi
                                 // disconnect&connect
-        memcpy((netconn_wifi_info_t *)param, &netmgr_wifi->conn.wifi_conn_info, sizeof(netconn_wifi_info_t));
+        memcpy((void *)(netconn_wifi_info_t *)param, &netmgr_wifi->conn.wifi_conn_info, sizeof(netconn_wifi_info_t));
         break;
     case NETCONN_CMD_COUNTRYCODE:
-        memcpy((char *)param, netmgr_wifi->ccode, strlen(netmgr_wifi->ccode));
+        memcpy((void *)(char *)param, netmgr_wifi->ccode, strlen(netmgr_wifi->ccode));
         break;
     case NETCONN_CMD_IP:
         TUYA_CALL_ERR_RETURN(tal_wifi_get_ip(WF_STATION, (NW_IP_S *)param));
         break;
     case NETCONN_CMD_NETCFG: {
         netcfg_args_t *netcfg = (netcfg_args_t *)param;
-        memcpy(netcfg, &netmgr_wifi->netcfg, sizeof(netcfg_args_t));
+        memcpy((void *)netcfg, &netmgr_wifi->netcfg, sizeof(netcfg_args_t));
     } break;
     case NETCONN_CMD_STATUS:
         *(netmgr_status_e *)param = netmgr_wifi->base.status;
